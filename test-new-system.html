@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test New Race Strategy System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .plan-badge { background-color: #007bff; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin: 2px; }
+    </style>
+</head>
+<body>
+    <h1>Test New Race Strategy System</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { calculateStintFromPlan, generateStrategyCombinations } from './utils/raceCalculations.js'
+
+        function runTests() {
+            const resultsDiv = document.getElementById('results')
+            let html = ''
+
+            try {
+                // Test 1: Calculate Stint from Plan
+                html += '<h2>Test 1: Calculate Stint from Plan</h2>'
+                
+                const testPlan = {
+                    paceSeconds: 100, // 1:40 per lap
+                    viewPerLap: 1.5,  // 1.5L per lap
+                    fuelCarried: 50   // 50L fuel
+                }
+
+                const calculated = calculateStintFromPlan(testPlan)
+                
+                html += `
+                    <div class="test-result info">
+                        <h4>Input Plan:</h4>
+                        <p><strong>Pace:</strong> ${testPlan.paceSeconds} seconds (${formatSecondsToTime(testPlan.paceSeconds)})</p>
+                        <p><strong>View per Lap:</strong> ${testPlan.viewPerLap} L</p>
+                        <p><strong>Fuel Carried:</strong> ${testPlan.fuelCarried} L</p>
+                    </div>
+                `
+
+                html += `
+                    <div class="test-result ${calculated.lapsPerStint > 0 ? 'success' : 'error'}">
+                        <h4>Calculated Results:</h4>
+                        <p><strong>Fuel per Lap:</strong> ${calculated.fuelPerLap.toFixed(2)} L (rounded down for safety)</p>
+                        <p><strong>Laps per Stint:</strong> ${calculated.lapsPerStint} laps (rounded up for safety)</p>
+                        <p><strong>Stint Duration:</strong> ${calculated.stintDurationMinutes} minutes</p>
+                        <p><strong>Total Fuel Used:</strong> ${(calculated.fuelPerLap * calculated.lapsPerStint).toFixed(2)} L</p>
+                    </div>
+                `
+
+                // Test 2: Create Multiple Plans
+                html += '<h2>Test 2: Multiple Plans Creation</h2>'
+                
+                const plans = [
+                    {
+                        id: 1,
+                        name: 'Push',
+                        color: '#dc3545',
+                        paceSeconds: 95,  // Fast pace
+                        viewPerLap: 2.0,  // High fuel consumption
+                        fuelCarried: 45,
+                        ...calculateStintFromPlan({ paceSeconds: 95, viewPerLap: 2.0, fuelCarried: 45 })
+                    },
+                    {
+                        id: 2,
+                        name: 'Balanced',
+                        color: '#ffc107',
+                        paceSeconds: 100, // Medium pace
+                        viewPerLap: 1.5,  // Medium fuel consumption
+                        fuelCarried: 50,
+                        ...calculateStintFromPlan({ paceSeconds: 100, viewPerLap: 1.5, fuelCarried: 50 })
+                    },
+                    {
+                        id: 3,
+                        name: 'Conservative',
+                        color: '#28a745',
+                        paceSeconds: 105, // Slow pace
+                        viewPerLap: 1.2,  // Low fuel consumption
+                        fuelCarried: 55,
+                        ...calculateStintFromPlan({ paceSeconds: 105, viewPerLap: 1.2, fuelCarried: 55 })
+                    }
+                ]
+
+                html += `
+                    <div class="test-result info">
+                        <h4>Created Plans:</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Plan</th>
+                                    <th>Pace</th>
+                                    <th>View/Lap</th>
+                                    <th>Fuel</th>
+                                    <th>Laps/Stint</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `
+
+                plans.forEach(plan => {
+                    html += `
+                        <tr>
+                            <td><span class="plan-badge" style="background-color: ${plan.color}">${plan.name}</span></td>
+                            <td>${formatSecondsToTime(plan.paceSeconds)}</td>
+                            <td>${plan.viewPerLap} L</td>
+                            <td>${plan.fuelCarried} L</td>
+                            <td>${plan.lapsPerStint} laps</td>
+                            <td>${plan.stintDurationMinutes} min</td>
+                        </tr>
+                    `
+                })
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `
+
+                // Test 3: Generate Strategy Combinations
+                html += '<h2>Test 3: Strategy Combinations</h2>'
+                
+                const constants = {
+                    restTimeHours: 8,
+                    pitTimeSeconds: 52,
+                    longPitTimeSeconds: 210
+                }
+                
+                const availableStintTime = (constants.restTimeHours * 60) - 30 // Rough estimate minus pit time
+                
+                const combinations = generateStrategyCombinations(plans, availableStintTime, constants)
+
+                html += `
+                    <div class="test-result info">
+                        <h4>Test Parameters:</h4>
+                        <p><strong>Available Stint Time:</strong> ${availableStintTime} minutes (${formatMinutesToTime(availableStintTime)})</p>
+                        <p><strong>Constants:</strong> Rest ${constants.restTimeHours}h, Pit ${constants.pitTimeSeconds}s, Driver Swap ${constants.longPitTimeSeconds}s</p>
+                        <p><strong>Generated Combinations:</strong> ${combinations.length}</p>
+                    </div>
+                `
+
+                if (combinations.length > 0) {
+                    html += `
+                        <div class="test-result success">
+                            <h4>Top 5 Strategy Combinations:</h4>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Strategy</th>
+                                        <th>Total Time</th>
+                                        <th>Overtime</th>
+                                        <th>Total Stints</th>
+                                        <th>Driver Swaps</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `
+
+                    combinations.slice(0, 5).forEach((combo, index) => {
+                        const strategyString = combo.plans
+                            .filter(p => p.quantity > 0)
+                            .map(p => `${p.quantity}× ${p.plan.name}`)
+                            .join(' + ')
+                        
+                        const overtimeClass = Math.abs(combo.overtime) <= 10 ? 'success' : 'warning'
+                        
+                        html += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${strategyString}</td>
+                                <td>${formatMinutesToTime(combo.totalTime)}</td>
+                                <td class="${overtimeClass}">${formatOvertime(combo.overtime)}</td>
+                                <td>${combo.totalStints}</td>
+                                <td>${combo.driverSwaps}</td>
+                            </tr>
+                        `
+                    })
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `
+                } else {
+                    html += `
+                        <div class="test-result error">
+                            <h4>❌ No combinations generated</h4>
+                            <p>Check if plans are valid and available time is sufficient.</p>
+                        </div>
+                    `
+                }
+
+                // Test 4: Rounding Safety Check
+                html += '<h2>Test 4: Rounding Safety Check</h2>'
+                
+                const safetyTestPlan = {
+                    paceSeconds: 98,
+                    viewPerLap: 1.7,
+                    fuelCarried: 48
+                }
+                
+                const safetyResult = calculateStintFromPlan(safetyTestPlan)
+                const actualFuelUsed = safetyResult.fuelPerLap * safetyResult.lapsPerStint
+                const fuelSafety = safetyTestPlan.fuelCarried - actualFuelUsed
+                
+                html += `
+                    <div class="test-result ${fuelSafety >= 0 ? 'success' : 'error'}">
+                        <h4>Safety Rounding Test:</h4>
+                        <p><strong>Fuel Carried:</strong> ${safetyTestPlan.fuelCarried} L</p>
+                        <p><strong>Calculated Fuel per Lap:</strong> ${safetyResult.fuelPerLap.toFixed(2)} L (rounded down)</p>
+                        <p><strong>Laps per Stint:</strong> ${safetyResult.lapsPerStint} (rounded up)</p>
+                        <p><strong>Total Fuel Used:</strong> ${actualFuelUsed.toFixed(2)} L</p>
+                        <p><strong>Fuel Safety Margin:</strong> ${fuelSafety.toFixed(2)} L</p>
+                        <p><strong>Result:</strong> ${fuelSafety >= 0 ? '✅ Safe - No fuel shortage risk' : '❌ Unsafe - Risk of fuel shortage'}</p>
+                    </div>
+                `
+
+            } catch (error) {
+                html += `
+                    <div class="test-result error">
+                        <h3>❌ Test Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `
+            }
+
+            resultsDiv.innerHTML = html
+        }
+
+        // Helper functions
+        function formatSecondsToTime(seconds) {
+            const mins = Math.floor(seconds / 60)
+            const secs = seconds % 60
+            return `${mins}:${secs.toString().padStart(2, '0')}`
+        }
+
+        function formatMinutesToTime(minutes) {
+            const hours = Math.floor(minutes / 60)
+            const mins = minutes % 60
+            return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+        }
+
+        function formatOvertime(overtime) {
+            if (overtime >= 0) {
+                return `+${formatMinutesToTime(overtime)}`
+            } else {
+                return `-${formatMinutesToTime(Math.abs(overtime))}`
+            }
+        }
+
+        // Run tests when page loads
+        runTests()
+    </script>
+</body>
+</html>

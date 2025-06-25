@@ -1,125 +1,226 @@
 /**
- * Composable for stint-based race strategy management
+ * Composable for race strategy management with plan-based approach
  */
 
 import { ref, computed } from 'vue'
-import { generateStintCombinations } from '~/utils/stintCalculations'
+import { calculateStintFromPlan, generateStrategyCombinations } from '~/utils/raceCalculations'
 
 export const useRaceStrategy = () => {
-  // Default race parameters for stint planning
-  const defaultParams = {
-    // Race settings
-    raceTimeHours: 8,
-    pitTimeSeconds: 52,
-    driverSwapMinutes: 3.5,
-    mandatoryDriverSwaps: 3,
-    
-    // Stint plans
-    stintPlans: [
-      {
-        name: 'Push',
-        duration: 75,
-        fuelUsage: 'High consumption for maximum pace',
-        description: 'Aggressive driving style',
-        color: '#dc3545' // Red for aggressive
-      },
-      {
-        name: 'Semi Lift',
-        duration: 80,
-        fuelUsage: 'Moderate consumption with pace management',
-        description: 'Balanced driving style',
-        color: '#ffc107' // Yellow for balanced
-      },
-      {
-        name: 'Full Lift',
-        duration: 90,
-        fuelUsage: 'Conservative consumption for fuel saving',
-        description: 'Fuel-saving driving style',
-        color: '#28a745' // Green for conservative
-      }
-    ]
+  // Default constant parameters (set once, rarely changed)
+  const defaultConstants = {
+    raceTimeHours: 8, // Race time in hours (can be input as hours or minutes)
+    pitTimeSeconds: 52, // Pit time in seconds
+    longPitTimeSeconds: 210, // Long pit time / driver swap in seconds (3.5 minutes)
+    mandatoryDriverSwaps: 3, // Number of mandatory driver swaps
+  }
+
+  // Default plan template
+  const defaultPlanTemplate = {
+    id: null,
+    name: '',
+    color: '#007bff',
+    paceSeconds: 100, // Lap pace in seconds (can be input as MM:SS or seconds)
+    viewPerLap: 1.5, // View per lap (fuel consumption rate)
+    fuelCarried: 50, // Amount of fuel carried
+    // Calculated values
+    lapsPerStint: 0,
+    stintDurationMinutes: 0,
+    fuelPerLap: 0
   }
 
   // Reactive state
-  const raceParams = ref({ ...defaultParams })
-  const stintCombinations = ref([])
+  const constants = ref({ ...defaultConstants })
+  const savedPlans = ref([]) // Array of saved plans
+  const currentPlan = ref({ ...defaultPlanTemplate }) // Plan being edited
+  const strategyCombinations = ref([]) // Generated strategy combinations
   const isCalculating = ref(false)
+  const isConstantsSet = ref(false) // Track if constants are set
 
   // Computed properties
   const totalRaceTimeMinutes = computed(() => {
-    return raceParams.value.raceTimeHours * 60
+    return constants.value.raceTimeHours * 60
   })
 
   const totalPitTimeMinutes = computed(() => {
-    // Calculate total pit time based on combinations
-    if (stintCombinations.value.length === 0) return 0
+    // Calculate based on strategy combinations
+    if (strategyCombinations.value.length === 0) {
+      // If no strategies yet, estimate based on typical race
+      const estimatedStints = Math.ceil(constants.value.raceTimeHours * 60 / 60) // Rough estimate
+      const estimatedPits = Math.max(0, estimatedStints - 1)
+      const estimatedDriverSwaps = constants.value.mandatoryDriverSwaps || 0
+      const estimatedRegularPits = Math.max(0, estimatedPits - estimatedDriverSwaps)
+      
+      const regularPitTime = (estimatedRegularPits * constants.value.pitTimeSeconds) / 60
+      const driverSwapTime = (estimatedDriverSwaps * constants.value.longPitTimeSeconds) / 60
+      
+      return regularPitTime + driverSwapTime
+    }
     
-    // Use the first combination as reference for pit calculations
-    const firstCombination = stintCombinations.value[0]
-    if (!firstCombination) return 0
+    const firstStrategy = strategyCombinations.value[0]
+    if (!firstStrategy) return 0
     
-    const totalPits = firstCombination.totalStints - 1 // One less pit than stints
-    const driverSwapPits = raceParams.value.mandatoryDriverSwaps
-    const regularPits = Math.max(0, totalPits - driverSwapPits)
-    
-    const regularPitTime = (regularPits * raceParams.value.pitTimeSeconds) / 60
-    const driverSwapTime = driverSwapPits * raceParams.value.driverSwapMinutes
+    const regularPits = firstStrategy.regularPits || (firstStrategy.totalPits - firstStrategy.driverSwaps)
+    const regularPitTime = (regularPits * constants.value.pitTimeSeconds) / 60
+    const driverSwapTime = (firstStrategy.driverSwaps * constants.value.longPitTimeSeconds) / 60
     
     return regularPitTime + driverSwapTime
   })
 
-  const requiredStintTimeMinutes = computed(() => {
+  const availableStintTimeMinutes = computed(() => {
     return totalRaceTimeMinutes.value - totalPitTimeMinutes.value
   })
 
   // Methods
-  const calculateStrategy = () => {
+  const setConstants = (newConstants) => {
+    constants.value = { ...newConstants }
+    isConstantsSet.value = true
+  }
+
+  const updateCurrentPlan = (planData) => {
+    currentPlan.value = { ...currentPlan.value, ...planData }
+    
+    // Recalculate plan values
+    const calculated = calculateStintFromPlan(currentPlan.value)
+    currentPlan.value.lapsPerStint = calculated.lapsPerStint
+    currentPlan.value.stintDurationMinutes = calculated.stintDurationMinutes
+    currentPlan.value.fuelPerLap = calculated.fuelPerLap
+  }
+
+  const savePlan = (planName, planColor) => {
+    if (!planName.trim()) {
+      throw new Error('Plan name is required')
+    }
+
+    // Check if name already exists
+    if (savedPlans.value.some(plan => plan.name === planName)) {
+      throw new Error('Plan name already exists')
+    }
+
+    const newPlan = {
+      ...currentPlan.value,
+      id: Date.now(),
+      name: planName,
+      color: planColor || currentPlan.value.color
+    }
+
+    // Recalculate to ensure latest values
+    const calculated = calculateStintFromPlan(newPlan)
+    newPlan.lapsPerStint = calculated.lapsPerStint
+    newPlan.stintDurationMinutes = calculated.stintDurationMinutes
+    newPlan.fuelPerLap = calculated.fuelPerLap
+
+    savedPlans.value.push(newPlan)
+    
+    // Reset current plan
+    resetCurrentPlan()
+    
+    return newPlan
+  }
+
+  const deletePlan = (planId) => {
+    const index = savedPlans.value.findIndex(plan => plan.id === planId)
+    if (index !== -1) {
+      savedPlans.value.splice(index, 1)
+    }
+  }
+
+  const resetCurrentPlan = () => {
+    currentPlan.value = { ...defaultPlanTemplate }
+  }
+
+  const calculateStrategies = () => {
+    if (savedPlans.value.length === 0) {
+      throw new Error('No saved plans available for strategy calculation')
+    }
+
     try {
       isCalculating.value = true
       
-      // Generate all possible stint combinations
-      stintCombinations.value = generateStintCombinations(
-        raceParams.value.stintPlans,
-        requiredStintTimeMinutes.value,
-        raceParams.value.mandatoryDriverSwaps
+      strategyCombinations.value = generateStrategyCombinations(
+        savedPlans.value,
+        availableStintTimeMinutes.value,
+        constants.value
       )
       
     } catch (error) {
-      console.error('Error calculating stint combinations:', error)
-      alert('Error calculating strategy. Please check your parameters.')
+      console.error('Error calculating strategies:', error)
+      throw error
     } finally {
       isCalculating.value = false
     }
   }
 
-  const resetParams = () => {
-    raceParams.value = { ...defaultParams }
-    stintCombinations.value = []
+  const parsePaceInput = (paceString) => {
+    if (!paceString) return 0
+    
+    // Check if format is MM:SS
+    if (paceString.includes(':')) {
+      const [minutes, seconds] = paceString.split(':').map(Number)
+      return (minutes * 60) + seconds
+    } else {
+      // Just seconds
+      return parseInt(paceString) || 0
+    }
   }
 
-  const updateParams = (newParams) => {
-    raceParams.value = { ...newParams }
+  const formatSecondsToTime = (seconds) => {
+    if (!seconds) return '0:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const updateStintPlan = (index, updatedPlan) => {
-    raceParams.value.stintPlans[index] = { ...updatedPlan }
+  const formatTimeInput = (value, unit = 'hours') => {
+    if (unit === 'minutes') {
+      return value / 60 // Convert minutes to hours
+    }
+    return value
+  }
+
+  const loadFromPreset = (presetData) => {
+    // Load constants
+    setConstants(presetData.constants)
+    
+    // Load saved plans
+    savedPlans.value = presetData.savedPlans.map(plan => ({ ...plan }))
+    
+    // Reset current plan and strategy combinations
+    resetCurrentPlan()
+    strategyCombinations.value = []
+  }
+
+  const getCurrentState = () => {
+    return {
+      constants: { ...constants.value },
+      savedPlans: savedPlans.value.map(plan => ({ ...plan }))
+    }
   }
 
   return {
     // State
-    raceParams,
-    stintCombinations,
+    constants,
+    savedPlans,
+    currentPlan,
+    strategyCombinations,
     isCalculating,
+    isConstantsSet,
     
     // Computed
     totalRaceTimeMinutes,
     totalPitTimeMinutes,
-    requiredStintTimeMinutes,
+    availableStintTimeMinutes,
     
     // Methods
-    calculateStrategy,
-    resetParams,
-    updateParams,
-    updateStintPlan
+    setConstants,
+    updateCurrentPlan,
+    savePlan,
+    deletePlan,
+    resetCurrentPlan,
+    calculateStrategies,
+    parsePaceInput,
+    formatSecondsToTime,
+    formatTimeInput,
+    loadFromPreset,
+    getCurrentState
   }
 }

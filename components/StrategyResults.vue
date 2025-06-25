@@ -1,41 +1,41 @@
 <template>
-  <div v-if="stintCombinations && stintCombinations.length > 0" class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h3>Stint Combinations</h3>
-      <span class="badge bg-primary">{{ stintCombinations.length }} combinations found</span>
+  <div v-if="strategyCombinations && strategyCombinations.length > 0" class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+      <h3 class="mb-0">🏆 Hasil Strategi Kombinasi</h3>
+      <small>{{ strategyCombinations.length }} kombinasi strategi ditemukan</small>
     </div>
     <div class="card-body">
       <!-- Summary Stats -->
       <div class="row mb-4">
         <div class="col-md-3 col-sm-6 mb-3">
-          <div class="stat-card">
-            <h6>Best Combination</h6>
-            <p class="stat-value">{{ formatCombination(stintCombinations[0]) }}</p>
-            <small class="text-muted">Minimal overtime</small>
+          <div class="stat-card bg-success text-white">
+            <h6>Strategi Terbaik</h6>
+            <p class="stat-value">{{ formatCombination(strategyCombinations[0]) }}</p>
+            <small>Overtime minimal</small>
           </div>
         </div>
         
         <div class="col-md-3 col-sm-6 mb-3">
-          <div class="stat-card">
-            <h6>Required Stint Time</h6>
-            <p class="stat-value">{{ requiredStintTime }}m</p>
-            <small class="text-muted">{{ Math.floor(requiredStintTime / 60) }}h {{ requiredStintTime % 60 }}m</small>
+          <div class="stat-card bg-info text-white">
+            <h6>Waktu Tersedia</h6>
+            <p class="stat-value">{{ availableStintTime }}m</p>
+            <small>{{ formatMinutesToTime(availableStintTime) }}</small>
           </div>
         </div>
         
         <div class="col-md-3 col-sm-6 mb-3">
-          <div class="stat-card">
-            <h6>Min Total Stints</h6>
+          <div class="stat-card bg-primary text-white">
+            <h6>Min Stint</h6>
             <p class="stat-value">{{ minStints }}</p>
-            <small class="text-muted">Fewest pit stops</small>
+            <small>Pit stop paling sedikit</small>
           </div>
         </div>
         
         <div class="col-md-3 col-sm-6 mb-3">
-          <div class="stat-card">
-            <h6>Max Total Stints</h6>
+          <div class="stat-card bg-secondary text-white">
+            <h6>Max Stint</h6>
             <p class="stat-value">{{ maxStints }}</p>
-            <small class="text-muted">Most pit stops</small>
+            <small>Pit stop paling banyak</small>
           </div>
         </div>
       </div>
@@ -43,7 +43,7 @@
       <!-- Filter Controls -->
       <div class="row mb-3">
         <div class="col-md-6 mb-2">
-          <label for="maxOvertime" class="form-label">Max Overtime (minutes)</label>
+          <label for="maxOvertime" class="form-label">Max Overtime (menit)</label>
           <input 
             type="number" 
             class="form-control" 
@@ -51,11 +51,11 @@
             v-model.number="maxOvertimeFilter"
             min="0"
             step="5"
-            placeholder="No limit"
+            placeholder="Tanpa batas"
           >
         </div>
         <div class="col-md-6 mb-2">
-          <label for="maxStintsFilter" class="form-label">Max Total Stints</label>
+          <label for="maxStintsFilter" class="form-label">Max Total Stint</label>
           <input 
             type="number" 
             class="form-control" 
@@ -63,7 +63,7 @@
             v-model.number="maxStintsFilter"
             min="1"
             step="1"
-            placeholder="No limit"
+            placeholder="Tanpa batas"
           >
         </div>
       </div>
@@ -74,13 +74,14 @@
           <thead class="table-dark">
             <tr>
               <th>Rank</th>
-              <th>Combination</th>
-              <th>Total Stints</th>
-              <th>Total Time</th>
+              <th>Kombinasi Strategi</th>
+              <th>Total Stint</th>
+              <th>Total Waktu</th>
               <th>Overtime</th>
-              <th>Total Pits</th>
-              <th>Regular Pits</th>
-              <th>Driver Swaps</th>
+              <th>Total Pit</th>
+              <th>Regular Pit</th>
+              <th>Driver Swap</th>
+              <th>Efisiensi</th>
             </tr>
           </thead>
           <tbody>
@@ -94,20 +95,11 @@
               <td>
                 <div class="combination-display">
                   <div class="combination-badges mb-1">
-                    <span v-if="combination.push > 0" 
+                    <span v-for="planCombo in combination.plans.filter(p => p.quantity > 0)" 
+                          :key="planCombo.plan.id"
                           class="badge stint-badge me-1" 
-                          :style="{ backgroundColor: stintPlans[0]?.color || '#dc3545', color: getTextColor(stintPlans[0]?.color) }">
-                      {{ combination.push }}× {{ stintPlans[0]?.name || 'Push' }}
-                    </span>
-                    <span v-if="combination.semiLift > 0" 
-                          class="badge stint-badge me-1" 
-                          :style="{ backgroundColor: stintPlans[1]?.color || '#ffc107', color: getTextColor(stintPlans[1]?.color) }">
-                      {{ combination.semiLift }}× {{ stintPlans[1]?.name || 'Semi' }}
-                    </span>
-                    <span v-if="combination.fullLift > 0" 
-                          class="badge stint-badge me-1" 
-                          :style="{ backgroundColor: stintPlans[2]?.color || '#28a745', color: getTextColor(stintPlans[2]?.color) }">
-                      {{ combination.fullLift }}× {{ stintPlans[2]?.name || 'Full' }}
+                          :style="{ backgroundColor: planCombo.plan.color, color: getTextColor(planCombo.plan.color) }">
+                      {{ planCombo.quantity }}× {{ planCombo.plan.name }}
                     </span>
                   </div>
                   <small class="text-muted">
@@ -119,24 +111,88 @@
                 <span class="badge bg-info">{{ combination.totalStints }}</span>
               </td>
               <td>
-                {{ formatTime(combination.totalStintTime) }}
+                {{ formatMinutesToTime(combination.totalTime) }}
               </td>
               <td>
-                <span class="badge" :class="getOvertimeBadgeClass(combination.overTime)">
-                  +{{ formatTime(combination.overTime) }}
+                <span class="badge" :class="getOvertimeBadgeClass(combination.overtime)">
+                  {{ formatOvertime(combination.overtime) }}
                 </span>
               </td>
               <td>{{ combination.totalPits }}</td>
-              <td>{{ combination.regularPits }}</td>
-              <td>{{ combination.driverSwapPits }}</td>
+              <td>{{ combination.regularPits || (combination.totalPits - combination.driverSwaps) }}</td>
+              <td>{{ combination.driverSwaps }}</td>
+              <td>
+                <span class="badge bg-light text-dark">{{ combination.efficiency.toFixed(1) }}%</span>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div v-if="filteredCombinations.length === 0" class="alert alert-warning">
-        <h6>No combinations match your filters</h6>
-        <p class="mb-0">Try adjusting the maximum overtime or maximum stints filters above.</p>
+        <h6>Tidak ada kombinasi yang sesuai filter</h6>
+        <p class="mb-0">Coba sesuaikan filter overtime atau maksimal stint di atas.</p>
+      </div>
+
+      <!-- Detailed View for Best Strategy -->
+      <div v-if="strategyCombinations.length > 0" class="mt-4">
+        <h5>📋 Detail Strategi Terbaik:</h5>
+        <div class="card">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Rincian Stint:</h6>
+                <ul class="list-unstyled">
+                  <li v-for="planCombo in strategyCombinations[0].plans.filter(p => p.quantity > 0)" 
+                      :key="planCombo.plan.id" class="mb-2">
+                    <span class="badge me-2" :style="{ backgroundColor: planCombo.plan.color }">
+                      {{ planCombo.quantity }}×
+                    </span>
+                    <strong>{{ planCombo.plan.name }}</strong>
+                    <br>
+                    <small class="text-muted ms-4">
+                      {{ planCombo.quantity }} stint × {{ planCombo.plan.stintDurationMinutes }} menit = 
+                      {{ planCombo.quantity * planCombo.plan.stintDurationMinutes }} menit
+                    </small>
+                  </li>
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <h6>Ringkasan Waktu:</h6>
+                <table class="table table-sm">
+                  <tr>
+                    <td>Total Stint Time:</td>
+                    <td><strong>{{ formatMinutesToTime(strategyCombinations[0].totalTime) }}</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Waktu Tersedia:</td>
+                    <td>{{ formatMinutesToTime(availableStintTime) }}</td>
+                  </tr>
+                  <tr>
+                    <td>Selisih:</td>
+                    <td>
+                      <span :class="strategyCombinations[0].overtime >= 0 ? 'text-warning' : 'text-success'">
+                        {{ formatOvertime(strategyCombinations[0].overtime) }}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Total Pit Stops:</td>
+                    <td><strong>{{ strategyCombinations[0].totalPits }}</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Regular Pit Stops:</td>
+                    <td><strong>{{ strategyCombinations[0].regularPits || (strategyCombinations[0].totalPits - strategyCombinations[0].driverSwaps) }}</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Mandatory Driver Swaps:</td>
+                    <td><strong>{{ strategyCombinations[0].driverSwaps }}</strong></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -144,9 +200,9 @@
   <div v-else-if="isCalculating" class="card mb-4">
     <div class="card-body text-center">
       <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Calculating...</span>
+        <span class="visually-hidden">Menghitung...</span>
       </div>
-      <p class="mt-2">Calculating stint combinations...</p>
+      <p class="mt-2">Menghitung kombinasi strategi...</p>
     </div>
   </div>
 </template>
@@ -155,21 +211,17 @@
 import { computed, ref } from 'vue'
 
 const props = defineProps({
-  stintCombinations: {
+  strategyCombinations: {
     type: Array,
     default: () => []
   },
-  requiredStintTime: {
+  availableStintTime: {
     type: Number,
     default: 0
   },
   isCalculating: {
     type: Boolean,
     default: false
-  },
-  stintPlans: {
-    type: Array,
-    default: () => []
   }
 })
 
@@ -179,10 +231,10 @@ const maxStintsFilter = ref(null)
 
 // Computed properties
 const filteredCombinations = computed(() => {
-  let filtered = [...props.stintCombinations]
+  let filtered = [...props.strategyCombinations]
   
   if (maxOvertimeFilter.value !== null && maxOvertimeFilter.value >= 0) {
-    filtered = filtered.filter(combo => combo.overTime <= maxOvertimeFilter.value)
+    filtered = filtered.filter(combo => Math.abs(combo.overtime) <= maxOvertimeFilter.value)
   }
   
   if (maxStintsFilter.value !== null && maxStintsFilter.value > 0) {
@@ -193,25 +245,24 @@ const filteredCombinations = computed(() => {
 })
 
 const minStints = computed(() => {
-  if (props.stintCombinations.length === 0) return 0
-  return Math.min(...props.stintCombinations.map(combo => combo.totalStints))
+  if (props.strategyCombinations.length === 0) return 0
+  return Math.min(...props.strategyCombinations.map(combo => combo.totalStints))
 })
 
 const maxStints = computed(() => {
-  if (props.stintCombinations.length === 0) return 0
-  return Math.max(...props.stintCombinations.map(combo => combo.totalStints))
+  if (props.strategyCombinations.length === 0) return 0
+  return Math.max(...props.strategyCombinations.map(combo => combo.totalStints))
 })
 
 // Helper functions
 const formatCombination = (combination) => {
-  const parts = []
-  if (combination.push > 0) parts.push(`${combination.push}×Push`)
-  if (combination.semiLift > 0) parts.push(`${combination.semiLift}×Semi`)
-  if (combination.fullLift > 0) parts.push(`${combination.fullLift}×Full`)
+  const parts = combination.plans
+    .filter(p => p.quantity > 0)
+    .map(p => `${p.quantity}× ${p.plan.name}`)
   return parts.join(' + ')
 }
 
-const formatTime = (minutes) => {
+const formatMinutesToTime = (minutes) => {
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
   
@@ -222,9 +273,18 @@ const formatTime = (minutes) => {
   }
 }
 
+const formatOvertime = (overtime) => {
+  if (overtime >= 0) {
+    return `+${formatMinutesToTime(overtime)}`
+  } else {
+    return `-${formatMinutesToTime(Math.abs(overtime))}`
+  }
+}
+
 const getOvertimeBadgeClass = (overtime) => {
-  if (overtime <= 10) return 'bg-success'
-  if (overtime <= 30) return 'bg-warning'
+  const absOvertime = Math.abs(overtime)
+  if (absOvertime <= 5) return 'bg-success'
+  if (absOvertime <= 15) return 'bg-warning'
   return 'bg-danger'
 }
 
@@ -249,17 +309,18 @@ const getTextColor = (backgroundColor) => {
 </script>
 
 <style scoped>
+.card-header {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+}
+
 .stat-card {
-  background: #f8f9fa;
   padding: 1rem;
   border-radius: 0.375rem;
   text-align: center;
   height: 100%;
-  border: 1px solid #e9ecef;
 }
 
 .stat-card h6 {
-  color: #6c757d;
   font-size: 0.85rem;
   margin-bottom: 0.5rem;
   font-weight: 600;
@@ -269,7 +330,6 @@ const getTextColor = (backgroundColor) => {
 .stat-value {
   font-size: 1.25rem;
   font-weight: bold;
-  color: #495057;
   margin: 0;
 }
 

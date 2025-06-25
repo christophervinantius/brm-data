@@ -1,32 +1,163 @@
 /**
- * Composable for preset management
+ * Composable for managing race strategy presets
  */
 
-import { ref, onMounted } from 'vue'
-import { 
-  getPresetNames, 
-  getPresetsWithSummaries, 
-  savePreset as savePresetToStorage, 
-  loadPreset as loadPresetFromStorage, 
-  deletePreset as deletePresetFromStorage,
-  presetExists
-} from '~/utils/presetManager'
+import { ref, computed, onMounted } from 'vue'
 
 export const usePresets = () => {
-  // Reactive state
+  // State - ensure presets is always an array
+  const presets = ref([])
   const showSaveModal = ref(false)
   const showLoadModal = ref(false)
-  const presetNames = ref([])
-  const presetsWithSummaries = ref([])
+  const showPresetTable = ref(false)
+  const isLoaded = ref(false)
+
+  // Computed with safety checks
+  const presetNames = computed(() => {
+    if (!Array.isArray(presets.value)) return []
+    return presets.value.map(preset => preset.name)
+  })
+
+  const presetsWithSummary = computed(() => {
+    if (!Array.isArray(presets.value)) return []
+    return presets.value.map(preset => ({
+      ...preset,
+      summary: generatePresetSummary(preset)
+    }))
+  })
 
   // Methods
-  const refreshPresets = () => {
-    presetNames.value = getPresetNames()
-    presetsWithSummaries.value = getPresetsWithSummaries()
+  const savePreset = (name, constants, savedPlans) => {
+    if (!name.trim()) {
+      throw new Error('Nama preset harus diisi')
+    }
+
+    // Ensure presets is array
+    if (!Array.isArray(presets.value)) {
+      presets.value = []
+    }
+
+    // Check if name already exists
+    if (presets.value.some(preset => preset.name === name)) {
+      throw new Error('Nama preset sudah ada')
+    }
+
+    const newPreset = {
+      id: Date.now(),
+      name: name.trim(),
+      createdAt: new Date().toISOString(),
+      constants: { ...constants },
+      savedPlans: Array.isArray(savedPlans) ? savedPlans.map(plan => ({ ...plan })) : [],
+      metadata: {
+        totalPlans: Array.isArray(savedPlans) ? savedPlans.length : 0,
+        planNames: Array.isArray(savedPlans) ? savedPlans.map(p => p.name) : [],
+        raceTimeHours: constants.raceTimeHours,
+        pitTimeSeconds: constants.pitTimeSeconds,
+        longPitTimeSeconds: constants.longPitTimeSeconds
+      }
+    }
+
+    presets.value.push(newPreset)
+    savePresetsToStorage()
+    
+    return newPreset
   }
 
+  const loadPreset = (presetId) => {
+    if (!Array.isArray(presets.value)) return null
+    
+    const preset = presets.value.find(p => p.id === presetId)
+    if (!preset) {
+      throw new Error('Preset tidak ditemukan')
+    }
+
+    return {
+      constants: { ...preset.constants },
+      savedPlans: Array.isArray(preset.savedPlans) ? preset.savedPlans.map(plan => ({ ...plan })) : []
+    }
+  }
+
+  const deletePreset = (presetId) => {
+    if (!Array.isArray(presets.value)) return
+    
+    const index = presets.value.findIndex(p => p.id === presetId)
+    if (index !== -1) {
+      presets.value.splice(index, 1)
+      savePresetsToStorage()
+    }
+  }
+
+  const duplicatePreset = (presetId, newName) => {
+    if (!Array.isArray(presets.value)) return null
+    
+    const preset = presets.value.find(p => p.id === presetId)
+    if (!preset) {
+      throw new Error('Preset tidak ditemukan')
+    }
+
+    if (!newName.trim()) {
+      throw new Error('Nama preset baru harus diisi')
+    }
+
+    if (presets.value.some(p => p.name === newName)) {
+      throw new Error('Nama preset sudah ada')
+    }
+
+    const duplicatedPreset = {
+      ...preset,
+      id: Date.now(),
+      name: newName.trim(),
+      createdAt: new Date().toISOString()
+    }
+
+    presets.value.push(duplicatedPreset)
+    savePresetsToStorage()
+    
+    return duplicatedPreset
+  }
+
+  const exportPreset = (presetId) => {
+    if (!Array.isArray(presets.value)) return null
+    
+    const preset = presets.value.find(p => p.id === presetId)
+    if (!preset) {
+      throw new Error('Preset tidak ditemukan')
+    }
+
+    const exportData = {
+      name: preset.name,
+      constants: preset.constants,
+      savedPlans: preset.savedPlans,
+      exportedAt: new Date().toISOString(),
+      version: '1.0'
+    }
+
+    return JSON.stringify(exportData, null, 2)
+  }
+
+  const importPreset = (jsonData, newName) => {
+    try {
+      const importData = JSON.parse(jsonData)
+      
+      if (!importData.constants || !importData.savedPlans) {
+        throw new Error('Format data tidak valid')
+      }
+
+      const name = newName || `${importData.name} (Imported)`
+      
+      return savePreset(name, importData.constants, importData.savedPlans)
+    } catch (error) {
+      throw new Error('Gagal import preset: ' + error.message)
+    }
+  }
+
+  const clearAllPresets = () => {
+    presets.value = []
+    savePresetsToStorage()
+  }
+
+  // Modal controls
   const openSaveModal = () => {
-    refreshPresets()
     showSaveModal.value = true
   }
 
@@ -35,7 +166,6 @@ export const usePresets = () => {
   }
 
   const openLoadModal = () => {
-    refreshPresets()
     showLoadModal.value = true
   }
 
@@ -43,98 +173,116 @@ export const usePresets = () => {
     showLoadModal.value = false
   }
 
-  const savePreset = async (name, params) => {
-    try {
-      // Check if preset already exists
-      if (presetExists(name)) {
-        const confirmed = confirm(`Preset "${name}" already exists. Do you want to overwrite it?`)
-        if (!confirmed) {
-          return false
-        }
-      }
+  const openPresetTable = () => {
+    showPresetTable.value = true
+  }
 
-      // Save the preset
-      const success = savePresetToStorage(name, params)
-      
-      if (success) {
-        refreshPresets()
-        alert(`Preset "${name}" saved successfully!`)
-        closeSaveModal()
-        return true
-      } else {
-        alert('Error saving preset. Please try again.')
-        return false
+  const closePresetTable = () => {
+    showPresetTable.value = false
+  }
+
+  // Storage functions (client-side only)
+  const savePresetsToStorage = () => {
+    if (process.client && typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('raceStrategyPresets', JSON.stringify(presets.value))
+      } catch (error) {
+        console.error('Failed to save presets to storage:', error)
       }
-    } catch (error) {
-      console.error('Error saving preset:', error)
-      alert('Error saving preset: ' + error.message)
-      return false
     }
   }
 
-  const loadPreset = async (name) => {
-    try {
-      const preset = loadPresetFromStorage(name)
-      
-      if (preset) {
-        closeLoadModal()
-        return preset
-      } else {
-        alert('Preset not found!')
-        return null
-      }
-    } catch (error) {
-      console.error('Error loading preset:', error)
-      alert('Error loading preset: ' + error.message)
-      return null
-    }
-  }
-
-  const deletePreset = async (name) => {
-    try {
-      const confirmed = confirm(`Are you sure you want to delete preset "${name}"?`)
-      
-      if (confirmed) {
-        const success = deletePresetFromStorage(name)
-        
-        if (success) {
-          refreshPresets()
-          alert(`Preset "${name}" deleted successfully!`)
-          return true
+  const loadPresetsFromStorage = () => {
+    if (process.client && typeof localStorage !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('raceStrategyPresets')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          presets.value = Array.isArray(parsed) ? parsed : []
         } else {
-          alert('Error deleting preset. Please try again.')
-          return false
+          presets.value = []
         }
+      } catch (error) {
+        console.error('Failed to load presets from storage:', error)
+        presets.value = []
       }
-      
-      return false
-    } catch (error) {
-      console.error('Error deleting preset:', error)
-      alert('Error deleting preset: ' + error.message)
-      return false
+    } else {
+      presets.value = []
+    }
+    isLoaded.value = true
+  }
+
+  // Helper functions
+  const generatePresetSummary = (preset) => {
+    if (!preset || !preset.savedPlans) return {}
+    
+    const planSummary = Array.isArray(preset.savedPlans) 
+      ? preset.savedPlans.map(plan => `${plan.name} (${plan.stintDurationMinutes}m)`).join(', ')
+      : ''
+
+    return {
+      totalPlans: Array.isArray(preset.savedPlans) ? preset.savedPlans.length : 0,
+      planSummary: planSummary.length > 50 ? planSummary.substring(0, 50) + '...' : planSummary,
+      raceTime: `${preset.constants?.raceTimeHours || 0}h`,
+      pitTime: `${preset.constants?.pitTimeSeconds || 0}s`,
+      createdDate: preset.createdAt ? new Date(preset.createdAt).toLocaleDateString('id-ID') : ''
     }
   }
 
-  // Initialize presets on mount
+  const formatPresetForTable = (preset) => {
+    if (!preset) return {}
+    
+    return {
+      id: preset.id,
+      name: preset.name,
+      createdAt: preset.createdAt,
+      raceTime: `${preset.constants?.raceTimeHours || 0} jam`,
+      pitTime: `${preset.constants?.pitTimeSeconds || 0} detik`,
+      driverSwapTime: `${preset.constants?.longPitTimeSeconds || 0} detik`,
+      totalPlans: Array.isArray(preset.savedPlans) ? preset.savedPlans.length : 0,
+      planNames: Array.isArray(preset.savedPlans) ? preset.savedPlans.map(p => p.name).join(', ') : '',
+      avgStintDuration: Array.isArray(preset.savedPlans) && preset.savedPlans.length > 0 
+        ? Math.round(preset.savedPlans.reduce((sum, p) => sum + (p.stintDurationMinutes || 0), 0) / preset.savedPlans.length)
+        : 0
+    }
+  }
+
+  // Initialize on client-side only
   onMounted(() => {
-    refreshPresets()
+    loadPresetsFromStorage()
   })
 
   return {
     // State
+    presets,
     showSaveModal,
     showLoadModal,
+    showPresetTable,
+    isLoaded,
+    
+    // Computed
     presetNames,
-    presetsWithSummaries,
+    presetsWithSummary,
     
     // Methods
-    refreshPresets,
+    savePreset,
+    loadPreset,
+    deletePreset,
+    duplicatePreset,
+    exportPreset,
+    importPreset,
+    clearAllPresets,
+    
+    // Modal controls
     openSaveModal,
     closeSaveModal,
     openLoadModal,
     closeLoadModal,
-    savePreset,
-    loadPreset,
-    deletePreset
+    openPresetTable,
+    closePresetTable,
+    
+    // Helpers
+    formatPresetForTable,
+    generatePresetSummary
   }
 }

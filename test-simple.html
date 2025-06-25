@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Adjustment Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .auto-badge { background-color: #17a2b8; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+    <h1>Auto-Adjustment Test for 300-minute Race</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { generateStintCombinations } from './utils/stintCalculations.js'
+
+        const testStintPlans = [
+            {
+                name: 'Push',
+                duration: 75,
+                fuelUsage: 'High consumption for maximum pace',
+                description: 'Aggressive driving style',
+                color: '#dc3545'
+            },
+            {
+                name: 'Semi Lift',
+                duration: 80,
+                fuelUsage: 'Moderate consumption with pace management',
+                description: 'Balanced driving style',
+                color: '#ffc107'
+            },
+            {
+                name: 'Full Lift',
+                duration: 90,
+                fuelUsage: 'Conservative consumption for fuel saving',
+                description: 'Fuel-saving driving style',
+                color: '#28a745'
+            }
+        ]
+
+        const raceTimeMinutes = 300 // 5 hours
+        const mandatoryDriverSwaps = 3
+
+        function runTest() {
+            const resultsDiv = document.getElementById('results')
+            
+            try {
+                // Generate combinations
+                const combinations = generateStintCombinations(testStintPlans, raceTimeMinutes, mandatoryDriverSwaps)
+                
+                let html = `
+                    <div class="test-result info">
+                        <h3>Test Parameters</h3>
+                        <p><strong>Race Time:</strong> ${raceTimeMinutes} minutes (${raceTimeMinutes/60} hours)</p>
+                        <p><strong>Mandatory Driver Swaps:</strong> ${mandatoryDriverSwaps}</p>
+                        <p><strong>Total Combinations Found:</strong> ${combinations.length}</p>
+                    </div>
+                `
+
+                // Check for auto-adjusted combinations
+                const autoAdjustedCombos = combinations.filter(combo => combo.isAutoAdjusted)
+                const regularCombos = combinations.filter(combo => !combo.isAutoAdjusted)
+
+                html += `
+                    <div class="test-result ${autoAdjustedCombos.length > 0 ? 'success' : 'error'}">
+                        <h3>Auto-Adjusted Combinations</h3>
+                        <p><strong>Found:</strong> ${autoAdjustedCombos.length} auto-adjusted combinations</p>
+                        <p><strong>Regular:</strong> ${regularCombos.length} calculated combinations</p>
+                    </div>
+                `
+
+                // Test specific scenario: 3 semi-lift + remaining as push
+                const threeSemiLiftTime = 3 * 80 // 240 minutes
+                const remainingTime = raceTimeMinutes - threeSemiLiftTime // 60 minutes
+                
+                html += `
+                    <div class="test-result info">
+                        <h3>Specific Test Case: 3 Semi-Lift Stints</h3>
+                        <p><strong>3 Semi-Lift time:</strong> ${threeSemiLiftTime} minutes</p>
+                        <p><strong>Remaining time:</strong> ${remainingTime} minutes</p>
+                        <p><strong>Expected:</strong> Should create 1 push stint for the remaining 60 minutes</p>
+                    </div>
+                `
+
+                // Find matching combination
+                const matchingCombo = combinations.find(combo => 
+                    combo.isAutoAdjusted && combo.semiLift === 3 && combo.push === 1 && combo.fullLift === 0
+                )
+
+                if (matchingCombo) {
+                    html += `
+                        <div class="test-result success">
+                            <h3>✅ Found Expected Combination</h3>
+                            <p><strong>Push:</strong> ${matchingCombo.push}, <strong>Semi:</strong> ${matchingCombo.semiLift}, <strong>Full:</strong> ${matchingCombo.fullLift}</p>
+                            <p><strong>Total Time:</strong> ${matchingCombo.totalStintTime} minutes</p>
+                            <p><strong>Overtime:</strong> ${matchingCombo.overTime} minutes</p>
+                            <p><strong>Note:</strong> ${matchingCombo.adjustmentNote || 'N/A'}</p>
+                        </div>
+                    `
+                } else {
+                    html += `
+                        <div class="test-result error">
+                            <h3>❌ Expected Combination Not Found</h3>
+                            <p>Could not find auto-adjusted combination with 3 semi-lift + 1 push stint</p>
+                        </div>
+                    `
+                }
+
+                // Check overtime filter
+                const highOvertimeCombos = combinations.filter(combo => combo.overTime > 30)
+                html += `
+                    <div class="test-result ${highOvertimeCombos.length === 0 ? 'success' : 'error'}">
+                        <h3>Overtime Filter Test</h3>
+                        <p><strong>Combinations with overtime > 30 minutes:</strong> ${highOvertimeCombos.length}</p>
+                        <p><strong>Expected:</strong> 0 (all should be filtered out)</p>
+                        ${highOvertimeCombos.length === 0 ? '<p>✅ Filter working correctly</p>' : '<p>❌ Filter not working</p>'}
+                    </div>
+                `
+
+                // Show top combinations table
+                html += `
+                    <div class="test-result info">
+                        <h3>Top 10 Combinations</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Type</th>
+                                    <th>Push</th>
+                                    <th>Semi</th>
+                                    <th>Full</th>
+                                    <th>Total Time</th>
+                                    <th>Overtime</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `
+
+                combinations.slice(0, 10).forEach((combo, index) => {
+                    const type = combo.isAutoAdjusted ? '<span class="auto-badge">AUTO</span>' : 'CALC'
+                    const totalTimeFormatted = `${Math.floor(combo.totalStintTime / 60)}h ${combo.totalStintTime % 60}m`
+                    const note = combo.adjustmentNote ? combo.adjustmentNote.substring(0, 40) + '...' : ''
+                    
+                    html += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${type}</td>
+                            <td>${combo.push}</td>
+                            <td>${combo.semiLift}</td>
+                            <td>${combo.fullLift}</td>
+                            <td>${totalTimeFormatted}</td>
+                            <td>+${combo.overTime}m</td>
+                            <td>${note}</td>
+                        </tr>
+                    `
+                })
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `
+
+                resultsDiv.innerHTML = html
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="test-result error">
+                        <h3>❌ Test Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `
+            }
+        }
+
+        // Run test when page loads
+        runTest()
+    </script>
+</body>
+</html>
