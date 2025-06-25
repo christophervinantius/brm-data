@@ -2,7 +2,10 @@
   <div class="container-fluid py-4">
     <div class="row">
       <div class="col-12">
-        <h1 class="text-center mb-4">Race Strategy Planner</h1>
+        <h1 class="text-center mb-4">Stint Strategy Planner</h1>
+        <p class="text-center text-muted mb-4">
+          Plan your race stints by combining different driving strategies to optimize race time
+        </p>
         
         <!-- Race Parameter Form -->
         <RaceParameterForm 
@@ -10,18 +13,15 @@
           @calculate="calculateStrategy"
           @save="openSaveModal"
           @load="openLoadModal"
+          @update-stint-plan="updateStintPlan"
         />
         
         <!-- Strategy Results -->
-        <StrategyResults :strategy-result="strategyResult" />
-        
-        <!-- Race Plan Table -->
-        <RacePlanTable 
-          :race-plan="racePlan"
-          :total-race-time="totalRaceTime"
-          :target-duration="raceDurationInMinutes"
-          :pit-stop-time-in-seconds="pitStopTimeInSeconds"
-          :is-valid-race-plan="isValidRacePlan"
+        <StrategyResults 
+          :stint-combinations="stintCombinations"
+          :required-stint-time="requiredStintTimeMinutes"
+          :is-calculating="isCalculating"
+          :stint-plans="raceParams.stintPlans"
         />
         
         <!-- Save Modal -->
@@ -53,21 +53,20 @@ import { usePresets } from '~/composables/usePresets'
 // Components
 import RaceParameterForm from '~/components/RaceParameterForm.vue'
 import StrategyResults from '~/components/StrategyResults.vue'
-import RacePlanTable from '~/components/RacePlanTable.vue'
 import PresetSaveModal from '~/components/PresetSaveModal.vue'
 import PresetLoadModal from '~/components/PresetLoadModal.vue'
 
 // Use composables
 const {
   raceParams,
-  strategyResult,
-  racePlan,
-  totalRaceTime,
-  raceDurationInMinutes,
-  pitStopTimeInSeconds,
-  isValidRacePlan,
+  stintCombinations,
+  isCalculating,
+  totalRaceTimeMinutes,
+  totalPitTimeMinutes,
+  requiredStintTimeMinutes,
   calculateStrategy,
-  updateParams
+  updateParams,
+  updateStintPlan
 } = useRaceStrategy()
 
 const {

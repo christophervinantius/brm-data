@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stint Calculation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Stint Strategy Calculator Test</h1>
+    
+    <div id="results"></div>
+
+    <script>
+        // Stint calculation logic
+        function generateStintCombinations(stintPlans, requiredTimeMinutes, mandatoryDriverSwaps) {
+            const combinations = []
+            const maxStintsPerType = 10
+            const maxTotalStints = 20
+            
+            for (let push = 0; push <= maxStintsPerType; push++) {
+                for (let semiLift = 0; semiLift <= maxStintsPerType; semiLift++) {
+                    for (let fullLift = 0; fullLift <= maxStintsPerType; fullLift++) {
+                        if (push === 0 && semiLift === 0 && fullLift === 0) continue
+                        
+                        const totalStints = push + semiLift + fullLift
+                        if (totalStints > maxTotalStints) continue
+                        
+                        const totalStintTime = 
+                            (push * stintPlans[0].duration) +
+                            (semiLift * stintPlans[1].duration) +
+                            (fullLift * stintPlans[2].duration)
+                        
+                        if (totalStintTime >= requiredTimeMinutes) {
+                            const totalPits = totalStints - 1
+                            
+                            if (totalPits >= mandatoryDriverSwaps) {
+                                const combination = {
+                                    id: `${push}-${semiLift}-${fullLift}`,
+                                    push: push,
+                                    semiLift: semiLift,
+                                    fullLift: fullLift,
+                                    totalStints: totalStints,
+                                    totalStintTime: totalStintTime,
+                                    totalPits: totalPits,
+                                    regularPits: Math.max(0, totalPits - mandatoryDriverSwaps),
+                                    driverSwapPits: mandatoryDriverSwaps,
+                                    overTime: totalStintTime - requiredTimeMinutes
+                                }
+                                
+                                combinations.push(combination)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Sort by efficiency (lowest overtime first)
+            combinations.sort((a, b) => {
+                if (a.overTime !== b.overTime) {
+                    return a.overTime - b.overTime
+                }
+                return a.totalStints - b.totalStints
+            })
+            
+            return combinations.slice(0, 50)
+        }
+
+        // Test data
+        const stintPlans = [
+            { name: 'Push', duration: 75, fuelUsage: 'High consumption for maximum pace' },
+            { name: 'Semi Lift', duration: 80, fuelUsage: 'Moderate consumption with pace management' },
+            { name: 'Full Lift', duration: 90, fuelUsage: 'Conservative consumption for fuel saving' }
+        ]
+
+        // Test parameters: 8 hour race
+        const raceTimeMinutes = 8 * 60 // 480 minutes
+        const pitTimeSeconds = 52
+        const driverSwapMinutes = 3.5
+        const mandatoryDriverSwaps = 3
+
+        // Calculate required stint time
+        const estimatedStints = Math.ceil(raceTimeMinutes / 80)
+        const estimatedPits = estimatedStints - 1
+        const regularPits = Math.max(0, estimatedPits - mandatoryDriverSwaps)
+        const pitTime = (regularPits * pitTimeSeconds) / 60
+        const swapTime = mandatoryDriverSwaps * driverSwapMinutes
+        const requiredStintTime = Math.round(raceTimeMinutes - pitTime - swapTime)
+
+        // Generate combinations
+        const combinations = generateStintCombinations(stintPlans, requiredStintTime, mandatoryDriverSwaps)
+
+        // Display results
+        const resultsDiv = document.getElementById('results')
+        
+        resultsDiv.innerHTML = `
+            <div class="result">
+                <h3>Test Parameters</h3>
+                <p><strong>Race Time:</strong> ${raceTimeMinutes} minutes (${raceTimeMinutes/60} hours)</p>
+                <p><strong>Required Stint Time:</strong> ${requiredStintTime} minutes</p>
+                <p><strong>Pit Time:</strong> ${pitTimeSeconds} seconds</p>
+                <p><strong>Driver Swap Time:</strong> ${driverSwapMinutes} minutes</p>
+                <p><strong>Mandatory Driver Swaps:</strong> ${mandatoryDriverSwaps}</p>
+            </div>
+            
+            <div class="result">
+                <h3>Results</h3>
+                <p><strong>Found ${combinations.length} valid combinations</strong></p>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Combination</th>
+                        <th>Total Stints</th>
+                        <th>Total Time</th>
+                        <th>Overtime</th>
+                        <th>Total Pits</th>
+                        <th>Regular Pits</th>
+                        <th>Driver Swaps</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${combinations.slice(0, 20).map((combo, index) => `
+                        <tr ${index === 0 ? 'style="background-color: #d4edda;"' : ''}>
+                            <td>${index + 1}</td>
+                            <td>
+                                <strong>${combo.push}×Push + ${combo.semiLift}×Semi + ${combo.fullLift}×Full</strong>
+                            </td>
+                            <td>${combo.totalStints}</td>
+                            <td>${Math.floor(combo.totalStintTime / 60)}h ${combo.totalStintTime % 60}m</td>
+                            <td>+${Math.floor(combo.overTime / 60)}h ${combo.overTime % 60}m</td>
+                            <td>${combo.totalPits}</td>
+                            <td>${combo.regularPits}</td>
+                            <td>${combo.driverSwapPits}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `
+    </script>
+</body>
+</html>

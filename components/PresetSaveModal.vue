@@ -8,7 +8,7 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label for="presetName" class="form-label">Preset Name</label>
+            <label for="preset  Name" class="form-label">Preset Name</label>
             <input 
               type="text" 
               class="form-control" 
