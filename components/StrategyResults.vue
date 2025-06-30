@@ -40,10 +40,10 @@
             <tr>
               <th>Rank</th>
               <th>Kombinasi Strategi</th>
-              <th>Total Stint</th>
-              <th>Total Waktu</th>
-              <th>Overtime</th>
-              <th>Total Pit</th>
+              <th @click="setSort('totalStints')" style="cursor:pointer">Total Stint <span v-if="sortKey==='totalStints'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+              <th @click="setSort('totalWaktu')" style="cursor:pointer">Total Waktu <span v-if="sortKey==='totalWaktu'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+              <th @click="setSort('overtime')" style="cursor:pointer">Overtime <span v-if="sortKey==='overtime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+              <th @click="setSort('totalPits')" style="cursor:pointer">Total Pit <span v-if="sortKey==='totalPits'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
               <th>Regular Pit</th>
               <th>Driver Swap</th>
             </tr>
@@ -159,7 +159,7 @@
                       <td><strong>{{ strategyCombinations[0].regularPits || (strategyCombinations[0].totalPits - strategyCombinations[0].driverSwaps) }}</strong></td>
                     </tr>
                     <tr>
-                      <td>Mandatory Driver Swaps:</td>
+                      <td>Driver Swaps:</td>
                       <td><strong>{{ strategyCombinations[0].driverSwaps }}</strong></td>
                     </tr>
                   </tbody>
@@ -204,6 +204,19 @@ const props = defineProps({
 const maxOvertimeFilter = ref(null)
 const maxStintsFilter = ref(null)
 
+// Tambahkan state untuk sort
+const sortKey = ref('')
+const sortOrder = ref('asc') // 'asc' atau 'desc'
+
+function setSort(key) {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortOrder.value = 'asc'
+  }
+}
+
 // Computed properties
 const filteredCombinations = computed(() => {
   let filtered = [...props.strategyCombinations]
@@ -215,7 +228,23 @@ const filteredCombinations = computed(() => {
   if (maxStintsFilter.value !== null && maxStintsFilter.value > 0) {
     filtered = filtered.filter(combo => combo.totalStints <= maxStintsFilter.value)
   }
-  
+
+  // Sorting
+  if (sortKey.value) {
+    filtered.sort((a, b) => {
+      let aValue = a[sortKey.value]
+      let bValue = b[sortKey.value]
+      // Untuk totalWaktu, gunakan totalRaceTime atau totalTime
+      if (sortKey.value === 'totalWaktu') {
+        aValue = a.totalRaceTime || a.totalTime
+        bValue = b.totalRaceTime || b.totalTime
+      }
+      if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1
+      return 0
+    })
+  }
+
   return filtered
 })
 
@@ -238,9 +267,9 @@ const formatCombination = (combination) => {
 }
 
 const formatMinutesToTime = (minutes) => {
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  
+  const rounded = Math.round(minutes)
+  const hours = Math.floor(rounded / 60)
+  const mins = rounded % 60
   if (hours > 0) {
     return `${hours}h ${mins}m`
   } else {

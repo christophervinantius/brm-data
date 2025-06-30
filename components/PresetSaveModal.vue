@@ -38,7 +38,7 @@
                     <div class="col-md-6">
                       <h6 class="text-primary">Konstanta:</h6>
                       <ul class="list-unstyled small">
-                        <li><strong>Rest Time:</strong> {{ constants.restTimeHours }} jam</li>
+                        <li><strong>Race Time:</strong> {{ constants.raceTimeHours }} jam</li>
                         <li><strong>Pit Time:</strong> {{ constants.pitTimeSeconds }} detik</li>
                         <li><strong>Driver Swap:</strong> {{ constants.longPitTimeSeconds }} detik</li>
                       </ul>

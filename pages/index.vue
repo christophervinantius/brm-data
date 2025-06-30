@@ -42,7 +42,7 @@
             <h5><i class="fas fa-check-circle me-2"></i>Konstanta Telah Diatur</h5>
             <div class="row">
               <div class="col-md-4">
-                <strong>Rest Time:</strong> {{ constants.restTimeHours }} jam
+                <strong>Race Time:</strong> {{ constants.raceTimeHours }} jam
               </div>
               <div class="col-md-4">
                 <strong>Pit Time:</strong> {{ constants.pitTimeSeconds }} detik

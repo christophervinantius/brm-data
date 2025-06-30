@@ -141,7 +141,7 @@ export function generateStrategyCombinations(savedPlans, totalRaceTimeMinutes, c
   })
 
   // Sort and limit results (don't remove duplicates as each swap strategy is unique)
-  return combinations.slice(0, 100) // Increased limit to show more optimized combinations
+  return removeDuplicateCombinations(combinations).slice(0, 100)
 }
 
 /**

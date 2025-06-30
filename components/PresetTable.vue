@@ -16,11 +16,14 @@
               <button class="btn btn-success me-2" @click="showCreateForm = true">
                 <i class="fas fa-plus me-1"></i>Buat Preset Baru
               </button>
-              <button class="btn btn-info me-2" @click="showImportForm = true">
-                <i class="fas fa-upload me-1"></i>Import Preset
+              <button class="btn btn-secondary me-2" @click="exportPresetsToExcel" :disabled="selectedPresetIds.length === 0">
+                <i class="fas fa-file-excel me-1"></i>Export Excel
               </button>
-              <button class="btn btn-warning" @click="exportAllPresets" v-if="presets.length > 0">
-                <i class="fas fa-download me-1"></i>Export Semua
+              <button class="btn btn-secondary me-2" @click="showImportExcel = true">
+                <i class="fas fa-file-import me-1"></i>Import Excel
+              </button>
+              <button class="btn btn-outline-info" @click="downloadExcelTemplate">
+                <i class="fas fa-download me-1"></i>Download Template Excel
               </button>
             </div>
             <div class="col-md-6">
@@ -119,24 +122,50 @@
             </div>
           </div>
 
+          <!-- Import Excel Form -->
+          <div v-if="showImportExcel" class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+              <h6 class="mb-0">Import Preset dari Excel</h6>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleImportExcel">
+                <div class="row mb-2">
+                  <div class="col-md-6">
+                    <input type="file" class="form-control" accept=".xlsx" @change="handleExcelFileSelect" ref="excelFileInput">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-12">
+                    <button type="submit" class="btn btn-secondary me-2">
+                      <i class="fas fa-upload me-1"></i>Import Excel
+                    </button>
+                    <button type="button" class="btn btn-secondary" @click="cancelImportExcel">
+                      Batal
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
           <!-- Presets Table -->
           <div class="table-responsive">
             <table class="table table-striped table-hover">
               <thead class="table-dark">
                 <tr>
-                  <th>Nama Preset</th>
-                  <th>Dibuat</th>
-                  <th>Rest Time</th>
-                  <th>Pit Time</th>
-                  <th>Driver Swap</th>
-                  <th>Total Plans</th>
-                  <th>Avg Stint</th>
-                  <th>Aksi</th>
+                  <th @click="setSort('name')" style="cursor:pointer">Nama Preset <span v-if="sortKey==='name'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('createdAt')" style="cursor:pointer">Dibuat <span v-if="sortKey==='createdAt'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('restTime')" style="cursor:pointer">Race Time <span v-if="sortKey==='restTime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('pitTime')" style="cursor:pointer">Pit Time <span v-if="sortKey==='pitTime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('driverSwapTime')" style="cursor:pointer">Driver Swap <span v-if="sortKey==='driverSwapTime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('totalPlans')" style="cursor:pointer">Total Plans <span v-if="sortKey==='totalPlans'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('avgStintDuration')" style="cursor:pointer">Avg Stint <span v-if="sortKey==='avgStintDuration'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="preset in filteredPresets" :key="preset.id">
                   <td>
+                    <input type="checkbox" :checked="isPresetSelected(preset.id)" @change="toggleSelectPreset(preset.id)" style="margin-right:6px;vertical-align:middle">
                     <strong>{{ preset.name }}</strong>
                     <br>
                     <small class="text-muted">{{ preset.planNames }}</small>
@@ -151,38 +180,6 @@
                     <span class="badge bg-primary">{{ preset.totalPlans }}</span>
                   </td>
                   <td>{{ preset.avgStintDuration }}m</td>
-                  <td>
-                    <div class="btn-group btn-group-sm">
-                      <button 
-                        class="btn btn-success" 
-                        @click="loadPreset(preset.id)"
-                        title="Load preset"
-                      >
-                        <i class="fas fa-play"></i>
-                      </button>
-                      <button 
-                        class="btn btn-info" 
-                        @click="duplicatePreset(preset.id)"
-                        title="Duplicate preset"
-                      >
-                        <i class="fas fa-copy"></i>
-                      </button>
-                      <button 
-                        class="btn btn-warning" 
-                        @click="exportPreset(preset.id)"
-                        title="Export preset"
-                      >
-                        <i class="fas fa-download"></i>
-                      </button>
-                      <button 
-                        class="btn btn-danger" 
-                        @click="deletePreset(preset.id)"
-                        title="Delete preset"
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               </tbody>
             </table>
@@ -219,6 +216,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import * as XLSX from 'xlsx'
 
 const props = defineProps({
   presets: {
@@ -249,20 +247,44 @@ const emit = defineEmits([
 const searchQuery = ref('')
 const showCreateForm = ref(false)
 const showImportForm = ref(false)
+const showImportExcel = ref(false)
 const newPresetName = ref('')
 const importPresetName = ref('')
 const importJsonData = ref('')
-const fileInput = ref(null)
+const excelFileInput = ref(null)
+const sortKey = ref('')
+const sortOrder = ref('asc')
+const selectedPresetIds = ref([])
 
 // Computed
 const filteredPresets = computed(() => {
-  if (!searchQuery.value) return formattedPresets.value
-  
-  const query = searchQuery.value.toLowerCase()
-  return formattedPresets.value.filter(preset => 
-    preset.name.toLowerCase().includes(query) ||
-    preset.planNames.toLowerCase().includes(query)
-  )
+  let filtered = !searchQuery.value ? formattedPresets.value : formattedPresets.value.filter(preset => {
+    const query = searchQuery.value.toLowerCase()
+    return preset.name.toLowerCase().includes(query) || preset.planNames.toLowerCase().includes(query)
+  })
+
+  if (sortKey.value) {
+    filtered = [...filtered].sort((a, b) => {
+      let aValue = a[sortKey.value]
+      let bValue = b[sortKey.value]
+      // Untuk kolom angka, pastikan dibandingkan sebagai number
+      if ([
+        'totalPlans', 'avgStintDuration'
+      ].includes(sortKey.value)) {
+        aValue = Number(aValue)
+        bValue = Number(bValue)
+      }
+      // Untuk tanggal
+      if (sortKey.value === 'createdAt') {
+        aValue = new Date(aValue)
+        bValue = new Date(bValue)
+      }
+      if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1
+      return 0
+    })
+  }
+  return filtered
 })
 
 const formattedPresets = computed(() => {
@@ -270,7 +292,7 @@ const formattedPresets = computed(() => {
     id: preset.id,
     name: preset.name,
     createdAt: preset.createdAt,
-    restTime: `${preset.constants.restTimeHours} jam`,
+    restTime: `${preset.constants.raceTimeHours} jam`,
     pitTime: `${preset.constants.pitTimeSeconds} detik`,
     driverSwapTime: `${preset.constants.longPitTimeSeconds} detik`,
     totalPlans: preset.savedPlans.length,
@@ -377,6 +399,272 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// Fungsi bantu untuk konversi kode warna ke nama warna sederhana
+function getColorName(hex) {
+  if (!hex) return ''
+  const map = {
+    '#ff0000': 'red',
+    '#00ff00': 'green',
+    '#0000ff': 'blue',
+    '#ffff00': 'yellow',
+    '#ffa500': 'orange',
+    '#800080': 'purple',
+    '#000000': 'black',
+    '#ffffff': 'white',
+    '#808080': 'gray',
+    '#008000': 'dark green',
+    '#00ffff': 'cyan',
+    '#ff00ff': 'magenta',
+    '#c0c0c0': 'silver',
+    '#a52a2a': 'brown',
+    '#ffc0cb': 'pink',
+    '#28a745': 'green',      // custom
+    '#e1ff00': 'lime',       // custom
+    // tambahkan lagi sesuai kebutuhan
+  }
+  const cssColors = {
+    'black': '#000000', 'silver': '#c0c0c0', 'gray': '#808080', 'white': '#ffffff', 'maroon': '#800000',
+    'red': '#ff0000', 'purple': '#800080', 'fuchsia': '#ff00ff', 'green': '#008000', 'lime': '#00ff00',
+    'olive': '#808000', 'yellow': '#ffff00', 'navy': '#000080', 'blue': '#0000ff', 'teal': '#008080',
+    'aqua': '#00ffff', 'orange': '#ffa500', 'aliceblue': '#f0f8ff', 'antiquewhite': '#faebd7',
+    'aquamarine': '#7fffd4', 'azure': '#f0ffff', 'beige': '#f5f5dc', 'bisque': '#ffe4c4',
+    'blanchedalmond': '#ffebcd', 'blueviolet': '#8a2be2', 'brown': '#a52a2a', 'burlywood': '#deb887',
+    'cadetblue': '#5f9ea0', 'chartreuse': '#7fff00', 'chocolate': '#d2691e', 'coral': '#ff7f50',
+    'cornflowerblue': '#6495ed', 'cornsilk': '#fff8dc', 'crimson': '#dc143c', 'cyan': '#00ffff',
+    'darkblue': '#00008b', 'darkcyan': '#008b8b', 'darkgoldenrod': '#b8860b', 'darkgray': '#a9a9a9',
+    'darkgreen': '#006400', 'darkkhaki': '#bdb76b', 'darkmagenta': '#8b008b', 'darkolivegreen': '#556b2f',
+    'darkorange': '#ff8c00', 'darkorchid': '#9932cc', 'darkred': '#8b0000', 'darksalmon': '#e9967a',
+    'darkseagreen': '#8fbc8f', 'darkslateblue': '#483d8b', 'darkslategray': '#2f4f4f', 'darkturquoise': '#00ced1',
+    'darkviolet': '#9400d3', 'deeppink': '#ff1493', 'deepskyblue': '#00bfff', 'dimgray': '#696969',
+    'dodgerblue': '#1e90ff', 'firebrick': '#b22222', 'floralwhite': '#fffaf0', 'forestgreen': '#228b22',
+    'gainsboro': '#dcdcdc', 'ghostwhite': '#f8f8ff', 'gold': '#ffd700', 'goldenrod': '#daa520',
+    'greenyellow': '#adff2f', 'honeydew': '#f0fff0', 'hotpink': '#ff69b4', 'indianred': '#cd5c5c',
+    'indigo': '#4b0082', 'ivory': '#fffff0', 'khaki': '#f0e68c', 'lavender': '#e6e6fa', 'lavenderblush': '#fff0f5',
+    'lawngreen': '#7cfc00', 'lemonchiffon': '#fffacd', 'lightblue': '#add8e6', 'lightcoral': '#f08080',
+    'lightcyan': '#e0ffff', 'lightgoldenrodyellow': '#fafad2', 'lightgreen': '#90ee90', 'lightgrey': '#d3d3d3',
+    'lightpink': '#ffb6c1', 'lightsalmon': '#ffa07a', 'lightseagreen': '#20b2aa', 'lightskyblue': '#87cefa',
+    'lightslategray': '#778899', 'lightsteelblue': '#b0c4de', 'lightyellow': '#ffffe0', 'limegreen': '#32cd32',
+    'linen': '#faf0e6', 'magenta': '#ff00ff', 'mediumaquamarine': '#66cdaa', 'mediumblue': '#0000cd',
+    'mediumorchid': '#ba55d3', 'mediumpurple': '#9370db', 'mediumseagreen': '#3cb371', 'mediumslateblue': '#7b68ee',
+    'mediumspringgreen': '#00fa9a', 'mediumturquoise': '#48d1cc', 'mediumvioletred': '#c71585', 'midnightblue': '#191970',
+    'mintcream': '#f5fffa', 'mistyrose': '#ffe4e1', 'moccasin': '#ffe4b5', 'navajowhite': '#ffdead', 'oldlace': '#fdf5e6',
+    'olivedrab': '#6b8e23', 'orangered': '#ff4500', 'orchid': '#da70d6', 'palegoldenrod': '#eee8aa', 'palegreen': '#98fb98',
+    'paleturquoise': '#afeeee', 'palevioletred': '#db7093', 'papayawhip': '#ffefd5', 'peachpuff': '#ffdab9',
+    'peru': '#cd853f', 'pink': '#ffc0cb', 'plum': '#dda0dd', 'powderblue': '#b0e0e6', 'rosybrown': '#bc8f8f',
+    'royalblue': '#4169e1', 'saddlebrown': '#8b4513', 'salmon': '#fa8072', 'sandybrown': '#f4a460',
+    'seagreen': '#2e8b57', 'seashell': '#fff5ee', 'sienna': '#a0522d', 'skyblue': '#87ceeb', 'slateblue': '#6a5acd',
+    'slategray': '#708090', 'snow': '#fffafa', 'springgreen': '#00ff7f', 'steelblue': '#4682b4', 'tan': '#d2b48c',
+    'thistle': '#d8bfd8', 'tomato': '#ff6347', 'turquoise': '#40e0d0', 'violet': '#ee82ee', 'wheat': '#f5deb3',
+    'whitesmoke': '#f5f5f5', 'yellowgreen': '#9acd32', 'rebeccapurple': '#663399'
+  }
+  // Cek mapping custom/umum dulu
+  if (map[hex.toLowerCase()]) return map[hex.toLowerCase()]
+  // Konversi hex ke RGB
+  function hexToRgb(h) {
+    let hex = h.replace('#', '')
+    if (hex.length === 3) hex = hex.split('').map(x => x + x).join('')
+    const num = parseInt(hex, 16)
+    return [num >> 16, (num >> 8) & 0xff, num & 0xff]
+  }
+  const rgb = hexToRgb(hex)
+  // Cari nama warna CSS terdekat
+  let minDist = Infinity, closest = ''
+  for (const [name, cssHex] of Object.entries(cssColors)) {
+    const cssRgb = hexToRgb(cssHex)
+    const dist = Math.sqrt(
+      Math.pow(rgb[0] - cssRgb[0], 2) +
+      Math.pow(rgb[1] - cssRgb[1], 2) +
+      Math.pow(rgb[2] - cssRgb[2], 2)
+    )
+    if (dist < minDist) {
+      minDist = dist
+      closest = name
+    }
+  }
+  return closest.charAt(0).toUpperCase() + closest.slice(1)
+}
+
+function exportPresetsToExcel() {
+  const header = [
+    'Preset Name',
+    'Race Time (jam)',
+    'Pit Time (detik)',
+    'Driver Swap (detik)',
+    'Plan Name',
+    'Pace per Lap (detik)',
+    'Fuel per Lap (L)',
+    'Fuel Carried (L)',
+    'Laps per Stint',
+    'Stint Duration (menit)',
+    'Plan Color'
+  ]
+  const rows = []
+  props.presets.filter(preset => selectedPresetIds.value.includes(preset.id)).forEach(preset => {
+    preset.savedPlans.forEach(plan => {
+      rows.push([
+        preset.name,
+        preset.constants.raceTimeHours,
+        preset.constants.pitTimeSeconds,
+        preset.constants.longPitTimeSeconds,
+        plan.name,
+        plan.paceSeconds,
+        plan.fuelPerLap,
+        plan.fuelCarried,
+        plan.lapsPerStint,
+        plan.stintDurationMinutes,
+        getColorName(plan.color || '')
+      ])
+    })
+  })
+  const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows])
+  worksheet['!cols'] = [
+    { wch: 18 }, // Preset Name
+    { wch: 14 }, // Race Time
+    { wch: 16 }, // Pit Time
+    { wch: 18 }, // Driver Swap
+    { wch: 16 }, // Plan Name
+    { wch: 20 }, // Pace per Lap
+    { wch: 18 }, // Fuel per Lap
+    { wch: 18 }, // Fuel Carried
+    { wch: 16 }, // Laps per Stint
+    { wch: 22 }, // Stint Duration
+    { wch: 14 }  // Plan Color
+  ]
+  worksheet['!rows'] = Array(rows.length + 1).fill({ hpt: 22 })
+  const totalRows = rows.length + 1
+  const totalCols = header.length
+  for (let r = 0; r < totalRows; r++) {
+    for (let c = 0; c < totalCols; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c })
+      if (worksheet[cellRef]) {
+        worksheet[cellRef].s = {
+          font: { bold: r === 0 },
+          alignment: { wrapText: true, vertical: 'center', horizontal: 'center' },
+          border: {
+            top:    { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } },
+            left:   { style: 'thin', color: { rgb: '000000' } },
+            right:  { style: 'thin', color: { rgb: '000000' } }
+          }
+        }
+      }
+    }
+  }
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Presets')
+  XLSX.writeFile(workbook, 'presets.xlsx')
+}
+
+function downloadExcelTemplate() {
+  const header = [
+    'Preset Name',
+    'Race Time (jam)',
+    'Pit Time (detik)',
+    'Driver Swap (detik)',
+    'Plan Name',
+    'Pace per Lap (detik)',
+    'Fuel per Lap (L)',
+    'Fuel Carried (L)',
+    'Laps per Stint',
+    'Stint Duration (menit)',
+    'Plan Color'
+  ]
+  const example = [
+    'Contoh Preset',
+    '8',
+    '52',
+    '210',
+    'Push',
+    '100',
+    '2.5',
+    '50',
+    '20',
+    '80',
+    'red'
+  ]
+  const worksheet = XLSX.utils.aoa_to_sheet([header, example])
+  worksheet['!cols'] = [
+    { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 14 }
+  ]
+  worksheet['!rows'] = Array(2).fill({ hpt: 22 })
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < header.length; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c })
+      if (worksheet[cellRef]) {
+        worksheet[cellRef].s = {
+          font: { bold: r === 0 },
+          alignment: { wrapText: true, vertical: 'center', horizontal: 'center' },
+          border: {
+            top:    { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } },
+            left:   { style: 'thin', color: { rgb: '000000' } },
+            right:  { style: 'thin', color: { rgb: '000000' } }
+          }
+        }
+      }
+    }
+  }
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Presets')
+  XLSX.writeFile(workbook, 'preset-template.xlsx')
+}
+
+function handleExcelFileSelect(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result)
+    const workbook = XLSX.read(data, { type: 'array' })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+    // rows[0] = header, rows[1..] = data
+    // Lakukan parsing dan mapping ke struktur preset & plan sesuai kebutuhanmu
+    // Contoh: group by preset name, lalu buat objek preset dan savedPlans
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+function handleImportExcel(e) {
+  // Implementasi parsing dan simpan ke state sesuai kebutuhan
+  showImportExcel.value = false
+  if (excelFileInput.value) excelFileInput.value.value = ''
+}
+
+function cancelImportExcel() {
+  showImportExcel.value = false
+  if (excelFileInput.value) excelFileInput.value.value = ''
+}
+
+function setSort(key) {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortOrder.value = 'asc'
+  }
+}
+
+function toggleSelectPreset(id) {
+  if (selectedPresetIds.value.includes(id)) {
+    selectedPresetIds.value = selectedPresetIds.value.filter(x => x !== id)
+  } else {
+    selectedPresetIds.value.push(id)
+  }
+}
+
+function toggleSelectAllPresets() {
+  if (selectedPresetIds.value.length === filteredPresets.value.length) {
+    selectedPresetIds.value = []
+  } else {
+    selectedPresetIds.value = filteredPresets.value.map(p => p.id)
+  }
+}
+
+function isPresetSelected(id) {
+  return selectedPresetIds.value.includes(id)
 }
 </script>
 

@@ -53,6 +53,15 @@
             </div>
           </div>
 
+          <!-- Input berdasarkan -->
+          <div class="col-md-12 mb-3">
+            <label class="form-label"><strong>Input berdasarkan:</strong></label>
+            <div class="btn-group w-100 mb-2" role="group">
+              <button type="button" class="btn" :class="inputMode==='fuel' ? 'btn-success' : 'btn-outline-success'" @click="inputMode='fuel'">Fuel Carried</button>
+              <button type="button" class="btn" :class="inputMode==='stint' ? 'btn-success' : 'btn-outline-success'" @click="inputMode='stint'">Stint Duration</button>
+            </div>
+          </div>
+
           <!-- Fuel Carried -->
           <div class="col-md-3 mb-3">
             <label for="fuelCarried" class="form-label">
@@ -68,9 +77,32 @@
                 min="1"
                 step="1"
                 @input="updateCalculations"
+                :disabled="inputMode==='stint'"
                 required
               >
               <span class="input-group-text">L</span>
+            </div>
+          </div>
+
+          <!-- Stint Duration -->
+          <div class="col-md-3 mb-3">
+            <label for="stintDuration" class="form-label">
+              <strong>Stint Duration</strong>
+              <i class="fas fa-info-circle ms-1" title="Durasi stint dalam menit"></i>
+            </label>
+            <div class="input-group">
+              <input 
+                type="number" 
+                class="form-control" 
+                id="stintDuration"
+                v-model.number="stintDurationInput"
+                min="1"
+                step="1"
+                @input="updateStintDuration"
+                :disabled="inputMode==='fuel'"
+                required
+              >
+              <span class="input-group-text">menit</span>
             </div>
           </div>
         </div>
@@ -184,6 +216,8 @@ const emit = defineEmits(['update-plan', 'save-plan', 'reset-plan'])
 const paceInputString = ref('')
 const planName = ref('')
 const planColor = ref('#28a745')
+const inputMode = ref('fuel') // 'fuel' atau 'stint'
+const stintDurationInput = ref(0)
 
 // Computed
 const validationErrors = computed(() => {
@@ -236,11 +270,12 @@ const updatePace = () => {
 }
 
 const updateCalculations = () => {
-  // Emit current plan data to trigger recalculation
-  emit('update-plan', {
-    viewPerLap: props.currentPlan.viewPerLap,
-    fuelCarried: props.currentPlan.fuelCarried
-  })
+  if (inputMode.value === 'fuel') {
+    emit('update-plan', {
+      viewPerLap: props.currentPlan.viewPerLap,
+      fuelCarried: props.currentPlan.fuelCarried
+    })
+  }
 }
 
 const forceUpdateCalculations = () => {
@@ -276,6 +311,35 @@ watch(() => props.currentPlan.paceSeconds, (newPace) => {
     paceInputString.value = newPace.toString()
   }
 }, { immediate: true })
+
+watch(() => inputMode.value, (mode) => {
+  if (mode === 'fuel') {
+    // Reset stint duration input
+    stintDurationInput.value = 0
+  } else {
+    // Reset fuel carried
+    emit('update-plan', { fuelCarried: 0 })
+  }
+})
+
+watch(() => props.currentPlan.fuelCarried, (val) => {
+  if (inputMode.value === 'fuel') {
+    // Hitung stint duration otomatis
+    if (props.currentPlan.fuelPerLap > 0) {
+      const duration = Math.floor(props.currentPlan.fuelCarried / props.currentPlan.fuelPerLap * (props.currentPlan.paceSeconds / 60))
+      emit('update-plan', { stintDurationMinutes: duration })
+      stintDurationInput.value = duration
+    }
+  }
+})
+
+function updateStintDuration() {
+  if (inputMode.value === 'stint' && props.currentPlan.fuelPerLap > 0) {
+    // Hitung fuel carried otomatis, dibulatkan ke atas
+    const fuel = Math.ceil(stintDurationInput.value * (60 / props.currentPlan.paceSeconds) * props.currentPlan.fuelPerLap)
+    emit('update-plan', { fuelCarried: fuel, stintDurationMinutes: stintDurationInput.value })
+  }
+}
 </script>
 
 <style scoped>
