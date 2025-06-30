@@ -138,7 +138,7 @@ export const useRaceStrategy = () => {
       
       strategyCombinations.value = generateStrategyCombinations(
         savedPlans.value,
-        availableStintTimeMinutes.value,
+        totalRaceTimeMinutes.value,
         constants.value
       )
       

@@ -77,17 +77,7 @@
               </div>
 
               <!-- Efficiency Indicators -->
-              <div class="efficiency-bar">
-                <small class="text-muted">Efisiensi Bahan Bakar:</small>
-                <div class="progress mt-1" style="height: 6px;">
-                  <div 
-                    class="progress-bar" 
-                    :class="getEfficiencyClass(plan)"
-                    :style="{ width: getEfficiencyPercentage(plan) + '%' }"
-                  ></div>
-                </div>
-                <small class="text-muted">{{ getEfficiencyPercentage(plan).toFixed(1) }}% digunakan</small>
-              </div>
+              <!-- Bagian ini dihapus sesuai permintaan user -->
             </div>
           </div>
         </div>

@@ -5,41 +5,6 @@
       <small>{{ strategyCombinations.length }} kombinasi strategi ditemukan</small>
     </div>
     <div class="card-body">
-      <!-- Summary Stats -->
-      <div class="row mb-4">
-        <div class="col-md-3 col-sm-6 mb-3">
-          <div class="stat-card bg-success text-white">
-            <h6>Strategi Terbaik</h6>
-            <p class="stat-value">{{ formatCombination(strategyCombinations[0]) }}</p>
-            <small>Overtime minimal</small>
-          </div>
-        </div>
-        
-        <div class="col-md-3 col-sm-6 mb-3">
-          <div class="stat-card bg-info text-white">
-            <h6>Waktu Tersedia</h6>
-            <p class="stat-value">{{ availableStintTime }}m</p>
-            <small>{{ formatMinutesToTime(availableStintTime) }}</small>
-          </div>
-        </div>
-        
-        <div class="col-md-3 col-sm-6 mb-3">
-          <div class="stat-card bg-primary text-white">
-            <h6>Min Stint</h6>
-            <p class="stat-value">{{ minStints }}</p>
-            <small>Pit stop paling sedikit</small>
-          </div>
-        </div>
-        
-        <div class="col-md-3 col-sm-6 mb-3">
-          <div class="stat-card bg-secondary text-white">
-            <h6>Max Stint</h6>
-            <p class="stat-value">{{ maxStints }}</p>
-            <small>Pit stop paling banyak</small>
-          </div>
-        </div>
-      </div>
-
       <!-- Filter Controls -->
       <div class="row mb-3">
         <div class="col-md-6 mb-2">
@@ -81,7 +46,6 @@
               <th>Total Pit</th>
               <th>Regular Pit</th>
               <th>Driver Swap</th>
-              <th>Efisiensi</th>
             </tr>
           </thead>
           <tbody>
@@ -111,7 +75,11 @@
                 <span class="badge bg-info">{{ combination.totalStints }}</span>
               </td>
               <td>
-                {{ formatMinutesToTime(combination.totalTime) }}
+                <div>
+                  <strong>{{ formatMinutesToTime(combination.totalRaceTime || combination.totalTime) }}</strong>
+                  <br>
+                  <small class="text-muted">Stint: {{ formatMinutesToTime(combination.totalTime) }}</small>
+                </div>
               </td>
               <td>
                 <span class="badge" :class="getOvertimeBadgeClass(combination.overtime)">
@@ -121,9 +89,6 @@
               <td>{{ combination.totalPits }}</td>
               <td>{{ combination.regularPits || (combination.totalPits - combination.driverSwaps) }}</td>
               <td>{{ combination.driverSwaps }}</td>
-              <td>
-                <span class="badge bg-light text-dark">{{ combination.efficiency.toFixed(1) }}%</span>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -136,7 +101,7 @@
 
       <!-- Detailed View for Best Strategy -->
       <div v-if="strategyCombinations.length > 0" class="mt-4">
-        <h5>📋 Detail Strategi Terbaik:</h5>
+        <h5>📋 Detail Strategi :</h5>
         <div class="card">
           <div class="card-body">
             <div class="row">
@@ -160,34 +125,44 @@
               <div class="col-md-6">
                 <h6>Ringkasan Waktu:</h6>
                 <table class="table table-sm">
-                  <tr>
-                    <td>Total Stint Time:</td>
-                    <td><strong>{{ formatMinutesToTime(strategyCombinations[0].totalTime) }}</strong></td>
-                  </tr>
-                  <tr>
-                    <td>Waktu Tersedia:</td>
-                    <td>{{ formatMinutesToTime(availableStintTime) }}</td>
-                  </tr>
-                  <tr>
-                    <td>Selisih:</td>
-                    <td>
-                      <span :class="strategyCombinations[0].overtime >= 0 ? 'text-warning' : 'text-success'">
-                        {{ formatOvertime(strategyCombinations[0].overtime) }}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Total Pit Stops:</td>
-                    <td><strong>{{ strategyCombinations[0].totalPits }}</strong></td>
-                  </tr>
-                  <tr>
-                    <td>Regular Pit Stops:</td>
-                    <td><strong>{{ strategyCombinations[0].regularPits || (strategyCombinations[0].totalPits - strategyCombinations[0].driverSwaps) }}</strong></td>
-                  </tr>
-                  <tr>
-                    <td>Mandatory Driver Swaps:</td>
-                    <td><strong>{{ strategyCombinations[0].driverSwaps }}</strong></td>
-                  </tr>
+                  <tbody>
+                    <tr>
+                      <td>Total Race Time:</td>
+                      <td><strong>{{ formatMinutesToTime(strategyCombinations[0].totalRaceTime || strategyCombinations[0].totalTime) }}</strong></td>
+                    </tr>
+                    <tr>
+                      <td>Total Stint Time:</td>
+                      <td>{{ formatMinutesToTime(strategyCombinations[0].totalTime) }}</td>
+                    </tr>
+                    <tr>
+                      <td>Total Pit Time:</td>
+                      <td>{{ formatMinutesToTime((strategyCombinations[0].totalRaceTime || strategyCombinations[0].totalTime) - strategyCombinations[0].totalTime) }}</td>
+                    </tr>
+                    <tr>
+                      <td>Waktu Race:</td>
+                      <td>{{ formatMinutesToTime(availableStintTime + ((strategyCombinations[0].totalRaceTime || strategyCombinations[0].totalTime) - strategyCombinations[0].totalTime)) }}</td>
+                    </tr>
+                    <tr>
+                      <td>Selisih:</td>
+                      <td>
+                        <span :class="strategyCombinations[0].overtime >= 0 ? 'text-warning' : 'text-success'">
+                          {{ formatOvertime(strategyCombinations[0].overtime) }}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Total Pit Stops:</td>
+                      <td><strong>{{ strategyCombinations[0].totalPits }}</strong></td>
+                    </tr>
+                    <tr>
+                      <td>Regular Pit Stops:</td>
+                      <td><strong>{{ strategyCombinations[0].regularPits || (strategyCombinations[0].totalPits - strategyCombinations[0].driverSwaps) }}</strong></td>
+                    </tr>
+                    <tr>
+                      <td>Mandatory Driver Swaps:</td>
+                      <td><strong>{{ strategyCombinations[0].driverSwaps }}</strong></td>
+                    </tr>
+                  </tbody>
                 </table>
               </div>
             </div>
