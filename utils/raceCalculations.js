@@ -8,18 +8,15 @@
  * @returns {Object} Calculated stint parameters
  */
 export function calculateStintFromPlan(plan) {
-  const { paceSeconds, viewPerLap, fuelCarried } = plan
+  const { paceSeconds, fuelPerLap, fuelCarried } = plan
   
-  if (!paceSeconds || !viewPerLap || !fuelCarried) {
+  if (!paceSeconds || !fuelPerLap || !fuelCarried) {
     return {
       lapsPerStint: 0,
       stintDurationMinutes: 0,
       fuelPerLap: 0
     }
   }
-
-  // viewPerLap is actually fuel consumption per lap
-  const fuelPerLap = viewPerLap
 
   // Calculate laps per stint (rounded down for safety)
   const lapsPerStint = Math.floor(fuelCarried / fuelPerLap)
@@ -220,7 +217,7 @@ export function validatePlan(plan) {
     errors.push('Pace must be greater than 0 seconds')
   }
   
-  if (!plan.viewPerLap || plan.viewPerLap <= 0) {
+  if (!plan.fuelPerLap || plan.fuelPerLap <= 0) {
     errors.push('View per lap must be greater than 0')
   }
   
@@ -228,7 +225,7 @@ export function validatePlan(plan) {
     errors.push('Fuel carried must be greater than 0')
   }
   
-  if (plan.viewPerLap > plan.fuelCarried) {
+  if (plan.fuelPerLap > plan.fuelCarried) {
     errors.push('View per lap cannot be greater than fuel carried')
   }
   

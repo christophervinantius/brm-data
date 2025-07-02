@@ -36,7 +36,7 @@
                   </div>
                   <div class="col-4">
                     <small class="text-muted">Fuel/Lap:</small><br>
-                    <strong>{{ plan.viewPerLap }} L</strong>
+                    <strong>{{ plan.fuelPerLap }} L</strong>
                   </div>
                   <div class="col-4">
                     <small class="text-muted">Fuel:</small><br>

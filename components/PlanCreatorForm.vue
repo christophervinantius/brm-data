@@ -34,7 +34,7 @@
 
           <!-- Fuel Per Lap -->
           <div class="col-md-3 mb-3">
-            <label for="viewPerLap" class="form-label">
+            <label for="fuelPerLap" class="form-label">
               <strong>Fuel per Lap</strong>
               <i class="fas fa-info-circle ms-1" title="Konsumsi bahan bakar per lap"></i>
             </label>
@@ -42,8 +42,8 @@
               <input 
                 type="number" 
                 class="form-control" 
-                id="viewPerLap"
-                v-model.number="currentPlan.viewPerLap"
+                id="fuelPerLap"
+                v-model.number="currentPlan.fuelPerLap"
                 min="0.1"
                 step="0.1"
                 @input="updateCalculations"
@@ -272,7 +272,7 @@ const updatePace = () => {
 const updateCalculations = () => {
   if (inputMode.value === 'fuel') {
     emit('update-plan', {
-      viewPerLap: props.currentPlan.viewPerLap,
+      fuelPerLap: props.currentPlan.fuelPerLap,
       fuelCarried: props.currentPlan.fuelCarried
     })
   }
@@ -282,7 +282,7 @@ const forceUpdateCalculations = () => {
   // Force update all calculations
   emit('update-plan', {
     paceSeconds: props.currentPlan.paceSeconds,
-    viewPerLap: props.currentPlan.viewPerLap,
+    fuelPerLap: props.currentPlan.fuelPerLap,
     fuelCarried: props.currentPlan.fuelCarried
   })
 }
@@ -334,8 +334,11 @@ watch(() => props.currentPlan.fuelCarried, (val) => {
 })
 
 function updateStintDuration() {
-  if (inputMode.value === 'stint' && props.currentPlan.fuelPerLap > 0) {
+  if (inputMode.value === 'stint') {
     // Hitung fuel carried otomatis, dibulatkan ke atas
+    console.log("stint duration input: " + stintDurationInput.value)
+    console.log("pace seconds: " + props.currentPlan.paceSeconds)
+    console.log("fuel per lap: " + props.currentPlan.fuelPerLap)
     const fuel = Math.ceil(stintDurationInput.value * (60 / props.currentPlan.paceSeconds) * props.currentPlan.fuelPerLap)
     emit('update-plan', { fuelCarried: fuel, stintDurationMinutes: stintDurationInput.value })
   }

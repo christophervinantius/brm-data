@@ -20,7 +20,7 @@ export const useRaceStrategy = () => {
     name: '',
     color: '#007bff',
     paceSeconds: 100, // Lap pace in seconds (can be input as MM:SS or seconds)
-    viewPerLap: 1.5, // View per lap (fuel consumption rate)
+    fuelPerLap: 1.5, // View per lap (fuel consumption rate)
     fuelCarried: 50, // Amount of fuel carried
     // Calculated values
     lapsPerStint: 0,

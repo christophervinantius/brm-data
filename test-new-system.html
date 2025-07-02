@@ -33,7 +33,7 @@
                 
                 const testPlan = {
                     paceSeconds: 100, // 1:40 per lap
-                    viewPerLap: 1.5,  // 1.5L per lap
+                    fuelPerLap: 1.5,  // 1.5L per lap
                     fuelCarried: 50   // 50L fuel
                 }
 
@@ -43,7 +43,7 @@
                     <div class="test-result info">
                         <h4>Input Plan:</h4>
                         <p><strong>Pace:</strong> ${testPlan.paceSeconds} seconds (${formatSecondsToTime(testPlan.paceSeconds)})</p>
-                        <p><strong>View per Lap:</strong> ${testPlan.viewPerLap} L</p>
+                        <p><strong>View per Lap:</strong> ${testPlan.fuelPerLap} L</p>
                         <p><strong>Fuel Carried:</strong> ${testPlan.fuelCarried} L</p>
                     </div>
                 `
@@ -67,27 +67,27 @@
                         name: 'Push',
                         color: '#dc3545',
                         paceSeconds: 95,  // Fast pace
-                        viewPerLap: 2.0,  // High fuel consumption
+                        fuelPerLap: 2.0,  // High fuel consumption
                         fuelCarried: 45,
-                        ...calculateStintFromPlan({ paceSeconds: 95, viewPerLap: 2.0, fuelCarried: 45 })
+                        ...calculateStintFromPlan({ paceSeconds: 95, fuelPerLap: 2.0, fuelCarried: 45 })
                     },
                     {
                         id: 2,
                         name: 'Balanced',
                         color: '#ffc107',
                         paceSeconds: 100, // Medium pace
-                        viewPerLap: 1.5,  // Medium fuel consumption
+                        fuelPerLap: 1.5,  // Medium fuel consumption
                         fuelCarried: 50,
-                        ...calculateStintFromPlan({ paceSeconds: 100, viewPerLap: 1.5, fuelCarried: 50 })
+                        ...calculateStintFromPlan({ paceSeconds: 100, fuelPerLap: 1.5, fuelCarried: 50 })
                     },
                     {
                         id: 3,
                         name: 'Conservative',
                         color: '#28a745',
                         paceSeconds: 105, // Slow pace
-                        viewPerLap: 1.2,  // Low fuel consumption
+                        fuelPerLap: 1.2,  // Low fuel consumption
                         fuelCarried: 55,
-                        ...calculateStintFromPlan({ paceSeconds: 105, viewPerLap: 1.2, fuelCarried: 55 })
+                        ...calculateStintFromPlan({ paceSeconds: 105, fuelPerLap: 1.2, fuelCarried: 55 })
                     }
                 ]
 
@@ -113,7 +113,7 @@
                         <tr>
                             <td><span class="plan-badge" style="background-color: ${plan.color}">${plan.name}</span></td>
                             <td>${formatSecondsToTime(plan.paceSeconds)}</td>
-                            <td>${plan.viewPerLap} L</td>
+                            <td>${plan.fuelPerLap} L</td>
                             <td>${plan.fuelCarried} L</td>
                             <td>${plan.lapsPerStint} laps</td>
                             <td>${plan.stintDurationMinutes} min</td>
@@ -206,7 +206,7 @@
                 
                 const safetyTestPlan = {
                     paceSeconds: 98,
-                    viewPerLap: 1.7,
+                    fuelPerLap: 1.7,
                     fuelCarried: 48
                 }
                 
