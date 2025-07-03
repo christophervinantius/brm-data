@@ -137,15 +137,34 @@ export const usePresets = () => {
 
   const importPreset = (jsonData, newName) => {
     try {
-      const importData = JSON.parse(jsonData)
-      
-      if (!importData.constants || !importData.savedPlans) {
-        throw new Error('Format data tidak valid')
+      let importArray = []
+      if (typeof jsonData === 'string') {
+        const importData = JSON.parse(jsonData)
+        if (Array.isArray(importData)) {
+          importArray = importData
+        } else if (importData.constants && importData.savedPlans) {
+          importArray = [{
+            name: newName || `${importData.name} (Imported)` || 'Imported Preset',
+            constants: importData.constants,
+            savedPlans: importData.savedPlans
+          }]
+        } else {
+          throw new Error('Format data tidak valid')
+        }
+      } else if (Array.isArray(jsonData)) {
+        importArray = jsonData
+      } else {
+        throw new Error('Format data import tidak dikenali')
       }
-
-      const name = newName || `${importData.name} (Imported)`
-      
-      return savePreset(name, importData.constants, importData.savedPlans)
+      // Tambahkan semua preset hasil import
+      importArray.forEach(preset => {
+        savePreset(
+          preset.name || 'Imported Preset',
+          preset.constants || {},
+          preset.savedPlans || []
+        )
+      })
+      return true
     } catch (error) {
       throw new Error('Gagal import preset: ' + error.message)
     }

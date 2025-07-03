@@ -255,6 +255,7 @@ const excelFileInput = ref(null)
 const sortKey = ref('')
 const sortOrder = ref('asc')
 const selectedPresetIds = ref([])
+const importedPresets = ref([])
 
 // Computed
 const filteredPresets = computed(() => {
@@ -501,7 +502,8 @@ function exportPresetsToExcel() {
     'Plan Color'
   ]
   const rows = []
-  props.presets.filter(preset => selectedPresetIds.value.includes(preset.id)).forEach(preset => {
+  const selectedPresets = props.presets.filter(preset => selectedPresetIds.value.includes(preset.id))
+  selectedPresets.forEach(preset => {
     preset.savedPlans.forEach(plan => {
       rows.push([
         preset.name,
@@ -520,17 +522,7 @@ function exportPresetsToExcel() {
   })
   const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows])
   worksheet['!cols'] = [
-    { wch: 18 }, // Preset Name
-    { wch: 14 }, // Race Time
-    { wch: 16 }, // Pit Time
-    { wch: 18 }, // Driver Swap
-    { wch: 16 }, // Plan Name
-    { wch: 20 }, // Pace per Lap
-    { wch: 18 }, // Fuel per Lap
-    { wch: 18 }, // Fuel Carried
-    { wch: 16 }, // Laps per Stint
-    { wch: 22 }, // Stint Duration
-    { wch: 14 }  // Plan Color
+    { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 14 }
   ]
   worksheet['!rows'] = Array(rows.length + 1).fill({ hpt: 22 })
   const totalRows = rows.length + 1
@@ -554,7 +546,11 @@ function exportPresetsToExcel() {
   }
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Presets')
-  XLSX.writeFile(workbook, 'presets.xlsx')
+  let filename = 'presets.xlsx'
+  if (selectedPresets.length === 1) {
+    filename = `${selectedPresets[0].name.replace(/\s+/g, '-').toLowerCase()}.xlsx`
+  }
+  XLSX.writeFile(workbook, filename)
 }
 
 function downloadExcelTemplate() {
@@ -621,14 +617,47 @@ function handleExcelFileSelect(event) {
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })
     // rows[0] = header, rows[1..] = data
-    // Lakukan parsing dan mapping ke struktur preset & plan sesuai kebutuhanmu
-    // Contoh: group by preset name, lalu buat objek preset dan savedPlans
+    const header = rows[0]
+    const dataRows = rows.slice(1)
+    const grouped = {}
+    dataRows.forEach(row => {
+      if (!row || row.length < 11) return // skip incomplete rows
+      const [
+        presetName, raceTime, pitTime, driverSwap, planName, pace, fuelPerLap, fuelCarried, laps, stintDuration, color
+      ] = row
+      if (!presetName) return
+      if (!grouped[presetName]) {
+        grouped[presetName] = {
+          id: Date.now() + Math.random(),
+          name: presetName,
+          createdAt: new Date().toISOString(),
+          constants: {
+            raceTimeHours: Number(raceTime),
+            pitTimeSeconds: Number(pitTime),
+            longPitTimeSeconds: Number(driverSwap)
+          },
+          savedPlans: []
+        }
+      }
+      grouped[presetName].savedPlans.push({
+        name: planName,
+        paceSeconds: Number(pace),
+        fuelPerLap: Number(fuelPerLap),
+        fuelCarried: Number(fuelCarried),
+        lapsPerStint: Number(laps),
+        stintDurationMinutes: Number(stintDuration),
+        color: color
+      })
+    })
+    importedPresets.value = Object.values(grouped)
   }
   reader.readAsArrayBuffer(file)
 }
 
 function handleImportExcel(e) {
-  // Implementasi parsing dan simpan ke state sesuai kebutuhan
+  if (importedPresets.value.length > 0) {
+    emit('import-preset', importedPresets.value)
+  }
   showImportExcel.value = false
   if (excelFileInput.value) excelFileInput.value.value = ''
 }

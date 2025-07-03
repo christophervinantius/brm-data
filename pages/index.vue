@@ -280,7 +280,13 @@ const handleExportPreset = async (presetId) => {
 const handleImportPreset = async (jsonData, newName) => {
   try {
     await importPreset(jsonData, newName)
-    showNotification('success', `Preset "${newName}" berhasil diimpor!`)
+    if (Array.isArray(jsonData)) {
+      // Import dari Excel, tampilkan semua nama preset
+      const names = jsonData.map(p => p.name || 'Tanpa Nama').join(', ')
+      showNotification('success', `Preset: ${names} berhasil diimpor!`)
+    } else {
+      showNotification('success', `Preset "${newName || (jsonData && jsonData.name) || 'Tanpa Nama'}" berhasil diimpor!`)
+    }
   } catch (error) {
     showNotification('error', error.message)
   }

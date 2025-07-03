@@ -271,6 +271,8 @@ const updatePace = () => {
 
 const updateCalculations = () => {
   if (inputMode.value === 'fuel') {
+    // Jangan update jika field kosong atau tidak valid
+    if (!props.currentPlan.fuelPerLap || !props.currentPlan.fuelCarried || props.currentPlan.fuelPerLap <= 0 || props.currentPlan.fuelCarried <= 0) return
     emit('update-plan', {
       fuelPerLap: props.currentPlan.fuelPerLap,
       fuelCarried: props.currentPlan.fuelCarried
@@ -325,7 +327,7 @@ watch(() => inputMode.value, (mode) => {
 watch(() => props.currentPlan.fuelCarried, (val) => {
   if (inputMode.value === 'fuel') {
     // Hitung stint duration otomatis
-    if (props.currentPlan.fuelPerLap > 0) {
+    if (props.currentPlan.fuelPerLap > 0 && props.currentPlan.fuelCarried > 0) {
       const duration = Math.floor(props.currentPlan.fuelCarried / props.currentPlan.fuelPerLap * (props.currentPlan.paceSeconds / 60))
       emit('update-plan', { stintDurationMinutes: duration })
       stintDurationInput.value = duration
@@ -335,10 +337,8 @@ watch(() => props.currentPlan.fuelCarried, (val) => {
 
 function updateStintDuration() {
   if (inputMode.value === 'stint') {
-    // Hitung fuel carried otomatis, dibulatkan ke atas
-    console.log("stint duration input: " + stintDurationInput.value)
-    console.log("pace seconds: " + props.currentPlan.paceSeconds)
-    console.log("fuel per lap: " + props.currentPlan.fuelPerLap)
+    // Jangan update jika field kosong atau tidak valid
+    if (!stintDurationInput.value || stintDurationInput.value <= 0 || !props.currentPlan.paceSeconds || !props.currentPlan.fuelPerLap || props.currentPlan.paceSeconds <= 0 || props.currentPlan.fuelPerLap <= 0) return
     const fuel = Math.ceil(stintDurationInput.value * (60 / props.currentPlan.paceSeconds) * props.currentPlan.fuelPerLap)
     emit('update-plan', { fuelCarried: fuel, stintDurationMinutes: stintDurationInput.value })
   }
