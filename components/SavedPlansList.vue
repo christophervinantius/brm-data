@@ -1,8 +1,8 @@
 <template>
   <div class="card mb-4" v-if="savedPlans.length > 0">
     <div class="card-header bg-info text-white">
-      <h3 class="mb-0">💾 Rencana Tersimpan</h3>
-      <small>{{ savedPlans.length }} rencana siap digunakan untuk strategi</small>
+      <h3 class="mb-0">Saved Plans</h3>
+      <!-- <small>{{ savedPlans.length }} rencana siap digunakan untuk strategi</small> -->
     </div>
     <div class="card-body">
       <!-- Plans Grid -->
@@ -13,13 +13,12 @@
               <div class="d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 fw-bold">{{ plan.name }}</h6>
                 <div class="d-flex align-items-center gap-2">
-                  <div class="color-indicator" :style="{ backgroundColor: plan.color }"></div>
+                  <!-- <div class="color-indicator" :style="{ backgroundColor: plan.color }"></div> -->
                   <button 
                     class="btn btn-sm btn-outline-danger" 
                     @click="$emit('delete-plan', plan.id)"
-                    title="Hapus rencana"
                   >
-                    <i class="fas fa-trash"></i>
+                    Delete
                   </button>
                 </div>
               </div>
@@ -28,51 +27,35 @@
             <div class="plan-body">
               <!-- Input Parameters -->
               <div class="mb-3">
-                <h6 class="text-muted mb-2">📥 Input Parameters:</h6>
-                <div class="row g-2">
-                  <div class="col-4">
-                    <small class="text-muted">Pace:</small><br>
-                    <strong>{{ formatSecondsToTime(plan.paceSeconds) }}</strong>
-                  </div>
-                  <div class="col-4">
-                    <small class="text-muted">Fuel/Lap:</small><br>
-                    <strong>{{ plan.fuelPerLap }} L</strong>
-                  </div>
-                  <div class="col-4">
-                    <small class="text-muted">Fuel:</small><br>
-                    <strong>{{ plan.fuelCarried }} L</strong>
-                  </div>
+                <h6 class="text-muted mb-2">Input Parameters</h6>
+                <div class="row">
+                  <small class="text-muted col-4">Average Lap Time</small><br>
+                  <span class="col-8">{{ formatSecondsToTime(plan.paceSeconds) }}</span>
+                </div>
+                <div class="row">
+                  <small class="text-muted col-4">Fuel per Lap</small><br>
+                  <span class="col-8">{{ plan.fuelPerLap }} liters</span>
+                </div>
+                <div class="row">
+                  <small class="text-muted col-4">Fuel Carried</small><br>
+                  <span class="col-8">{{ plan.fuelCarried }} liters</span>
                 </div>
               </div>
 
               <!-- Calculated Results -->
               <div class="mb-3">
-                <h6 class="text-muted mb-2">📊 Hasil Perhitungan:</h6>
-                <div class="row g-2">
-                  <div class="col-6">
-                    <div class="result-item">
-                      <small class="text-muted">Fuel per Lap:</small><br>
-                      <span class="result-value text-primary">{{ plan.fuelPerLap.toFixed(2) }} L</span>
-                    </div>
-                  </div>
-                  <div class="col-6">
-                    <div class="result-item">
-                      <small class="text-muted">Laps per Stint:</small><br>
-                      <span class="result-value text-success">{{ plan.lapsPerStint }} lap</span>
-                    </div>
-                  </div>
-                  <div class="col-6">
-                    <div class="result-item">
-                      <small class="text-muted">Stint Duration:</small><br>
-                      <span class="result-value text-info">{{ plan.stintDurationMinutes }} min</span>
-                    </div>
-                  </div>
-                  <div class="col-6">
-                    <div class="result-item">
-                      <small class="text-muted">Total Used:</small><br>
-                      <span class="result-value text-warning">{{ (plan.fuelPerLap * plan.lapsPerStint).toFixed(1) }} L</span>
-                    </div>
-                  </div>
+                <h6 class="text-muted mb-2">Calculation Results</h6>
+                <div class="row">
+                    <small class="text-muted col-4">Laps per Stint</small><br>
+                    <span class="result-value col-8">{{ plan.lapsPerStint }} laps</span>
+                </div>
+                <div class="row">
+                    <small class="text-muted col-4">Stint Duration</small><br>
+                    <span class="result-value col-8">{{ formatMinutesToTime(plan.stintDurationMinutes) }}</span>
+                </div>
+                <div class="row">
+                    <small class="text-muted col-4">Total Fuel Used</small><br>
+                    <span class="result-value col-8">{{ (plan.fuelPerLap * plan.lapsPerStint).toFixed(1) }} liters</span>
                 </div>
               </div>
 
@@ -87,14 +70,14 @@
       <div class="row mt-3">
         <div class="col-12">
           <button 
-            class="btn btn-primary btn-lg me-2" 
+            class="btn btn-primary me-2" 
             @click="$emit('calculate-strategies')"
             :disabled="savedPlans.length === 0"
           >
-            <i class="fas fa-calculator me-2"></i>Hitung Strategi Kombinasi
+            Calculate Strategy Combinations
           </button>
           <button class="btn btn-outline-secondary" @click="$emit('clear-all-plans')">
-            <i class="fas fa-trash-alt me-2"></i>Hapus Semua Rencana
+            Delete All Plans
           </button>
         </div>
       </div>
@@ -105,8 +88,8 @@
   <div v-else class="card mb-4">
     <div class="card-body text-center py-5">
       <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-      <h5 class="text-muted">Belum Ada Rencana Tersimpan</h5>
-      <p class="text-muted">Buat rencana strategi pertama Anda menggunakan form di atas.</p>
+      <h5 class="text-muted">No plans yet</h5>
+      <!-- <p class="text-muted">Buat rencana strategi pertama Anda menggunakan form di atas.</p> -->
     </div>
   </div>
 </template>
@@ -123,10 +106,21 @@ const emit = defineEmits(['delete-plan', 'calculate-strategies', 'clear-all-plan
 
 // Methods
 const formatSecondsToTime = (seconds) => {
-  if (!seconds) return '0:00'
+  if (!seconds) return '0 seconds'
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
+  return `${mins === 0 ? "" : mins} ${mins === 0 ? "" : mins === 1 ? "minute" : "minutes"} ${secs === 0 ? "" : secs} ${secs === 0 ? "" : secs === 1 ? "second" : "seconds"}`
+}
+
+const formatMinutesToTime = (minutes) => {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  
+  if (hours > 0) {
+    return `${hours} ${hours === 1 ? "hour" : "hours"} ${mins} ${mins === 1 ? "minute" : "minutes"}`
+  } else {
+    return `${mins} ${mins === 1 ? "minute" : "minutes"}`
+  }
 }
 
 const getEfficiencyPercentage = (plan) => {
@@ -183,7 +177,7 @@ const getEfficiencyClass = (plan) => {
 
 .result-value {
   font-weight: 600;
-  font-size: 0.9rem;
+  /* font-size: 0.9rem; */
 }
 
 .efficiency-bar {

@@ -4,31 +4,28 @@
       <div class="col-12">
         <!-- Header -->
         <div class="text-center mb-4">
-          <h1 class="display-4 fw-bold text-primary">🏁 Race Strategy Planner</h1>
-          <p class="lead text-muted">
-            Sistem perencanaan strategi balapan dengan pendekatan berbasis rencana
-          </p>
+          <h1 class="display-4 fw-bold text-primary">Race Planner</h1>
           
           <!-- Preset Actions -->
           <div class="btn-group" role="group">
             <button class="btn btn-outline-primary" @click="openPresetTable">
-              <i class="fas fa-table me-1"></i>Tabel Preset
+              Presets
             </button>
             <button class="btn btn-outline-success" @click="openSaveModal" :disabled="!canSavePreset">
-              <i class="fas fa-save me-1"></i>Simpan Preset
+              Save Preset
             </button>
             <button class="btn btn-outline-info" @click="openLoadModal" :disabled="presets.length === 0">
-              <i class="fas fa-folder-open me-1"></i>Load Preset
+              Load Preset
             </button>
           </div>
         </div>
 
         <!-- Step 1: Constants Setup (Only show if not set) -->
-        <div v-if="!isConstantsSet">
-          <div class="alert alert-info">
+        <div>
+          <!-- <div class="alert alert-info">
             <h5><i class="fas fa-info-circle me-2"></i>Langkah 1: Setup Konstanta</h5>
             <p class="mb-0">Mulai dengan mengatur parameter konstanta yang jarang berubah.</p>
-          </div>
+          </div> -->
           
           <ConstantsSetupForm 
             v-model="constants"
@@ -39,21 +36,24 @@
         <!-- Step 2: Plan Creation (Show after constants are set) -->
         <div v-if="isConstantsSet">
           <div class="alert alert-success">
-            <h5><i class="fas fa-check-circle me-2"></i>Konstanta Telah Diatur</h5>
+            <h5>Saved Race Information</h5>
             <div class="row">
-              <div class="col-md-4">
-                <strong>Race Time:</strong> {{ constants.raceTimeHours }} jam
+              <div class="col-md-12">
+                <strong>Total Race Time:</strong> {{ constants.raceTimeHours }} hours
               </div>
-              <div class="col-md-4">
-                <strong>Pit Time:</strong> {{ constants.pitTimeSeconds }} detik
+              <div class="col-md-12">
+                <strong>Mandatory Driver Swaps:</strong> {{ constants.mandatoryDriverSwaps }} swaps
               </div>
-              <div class="col-md-4">
-                <strong>Driver Swap:</strong> {{ constants.longPitTimeSeconds }} detik
+              <div class="col-md-12">
+                <strong>Regular Pit Time:</strong> {{ formatSecondsToTime(constants.pitTimeSeconds) }}
+              </div>
+              <div class="col-md-12">
+                <strong>Long Pit Time:</strong> {{ formatSecondsToTime(constants.longPitTimeSeconds) }} (including driver swap)
               </div>
             </div>
-            <button class="btn btn-sm btn-outline-primary mt-2" @click="editConstants">
-              <i class="fas fa-edit me-1"></i>Edit Konstanta
-            </button>
+            <!-- <button class="btn btn-sm btn-outline-primary mt-2" @click="editConstants">
+              <i class="fas fa-edit me-1"></i>Edit Information
+            </button> -->
           </div>
 
           <!-- Plan Creator Form -->
@@ -80,26 +80,6 @@
           />
         </div>
 
-        <!-- Progress Indicator -->
-        <div class="row mt-4" v-if="isConstantsSet">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-body">
-                <h6>📊 Progress:</h6>
-                <div class="progress mb-2" style="height: 8px;">
-                  <div 
-                    class="progress-bar bg-success" 
-                    :style="{ width: progressPercentage + '%' }"
-                  ></div>
-                </div>
-                <small class="text-muted">
-                  {{ savedPlans.length }} rencana dibuat
-                  {{ strategyCombinations.length > 0 ? ` • ${strategyCombinations.length} kombinasi strategi tersedia` : '' }}
-                </small>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -191,21 +171,12 @@ const {
 } = usePresets()
 
 // Computed
-const progressPercentage = computed(() => {
-  if (!isConstantsSet.value) return 0
-  
-  let progress = 20 // Constants set
-  
-  if (savedPlans.value.length > 0) {
-    progress += 40 // Plans created
-  }
-  
-  if (strategyCombinations.value.length > 0) {
-    progress += 40 // Strategies calculated
-  }
-  
-  return Math.min(progress, 100)
-})
+const formatSecondsToTime = (seconds) => {
+  if (!seconds) return '0 seconds'
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins === 0 ? "" : mins} ${mins === 0 ? "" : mins === 1 ? "minute" : "minutes"} ${secs === 0 ? "" : secs} ${secs === 0 ? "" : secs === 1 ? "second" : "seconds"}`
+}
 
 const canSavePreset = computed(() => {
   return isConstantsSet.value && savedPlans.value.length > 0
@@ -219,7 +190,7 @@ const handleConstantsSet = (newConstants) => {
 const handleSavePlan = async (planName, planColor) => {
   try {
     await savePlan(planName, planColor)
-    showNotification('success', `Rencana "${planName}" berhasil disimpan!`)
+    showNotification('success', `Plan "${planName}" successfully saved!`)
   } catch (error) {
     showNotification('error', error.message)
   }
@@ -229,7 +200,7 @@ const handleSavePreset = async (presetName) => {
   try {
     const currentState = getCurrentState()
     await savePreset(presetName, currentState.constants, currentState.savedPlans)
-    showNotification('success', `Preset "${presetName}" berhasil disimpan!`)
+    showNotification('success', `Preset "${presetName}" successfully saved!`)
     closeSaveModal()
   } catch (error) {
     showNotification('error', error.message)
@@ -297,10 +268,10 @@ const editConstants = () => {
 }
 
 const clearAllPlans = () => {
-  if (confirm('Apakah Anda yakin ingin menghapus semua rencana?')) {
+  if (confirm('Are you sure to delete all plans?')) {
     savedPlans.value = []
     strategyCombinations.value = []
-    showNotification('info', 'Semua rencana telah dihapus')
+    showNotification('info', 'All plans deleted')
   }
 }
 
@@ -328,7 +299,7 @@ const downloadJson = (jsonData, filename) => {
 
 // Set page title
 useHead({
-  title: 'Race Strategy Planner - Plan Based System'
+  title: 'Race Planner'
 })
 </script>
 

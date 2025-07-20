@@ -4,7 +4,7 @@
       <div class="modal-content">
         <div class="modal-header bg-primary text-white">
           <h5 class="modal-title">
-            <i class="fas fa-table me-2"></i>Tabel Preset Strategi
+            <i class="fas fa-table me-2"></i>Presets
           </h5>
           <button type="button" class="btn-close btn-close-white" @click="$emit('close')"></button>
         </div>
@@ -12,18 +12,18 @@
         <div class="modal-body">
           <!-- Action Buttons -->
           <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="col-md-12 mb-3">
               <button class="btn btn-success me-2" @click="showCreateForm = true">
-                <i class="fas fa-plus me-1"></i>Buat Preset Baru
+                <i class="fas fa-plus me-1"></i>Create New Preset
               </button>
               <button class="btn btn-secondary me-2" @click="exportPresetsToExcel" :disabled="selectedPresetIds.length === 0">
-                <i class="fas fa-file-excel me-1"></i>Export Excel
+                <i class="fas fa-file-excel me-1"></i>Export To Excel
               </button>
               <button class="btn btn-secondary me-2" @click="showImportExcel = true">
-                <i class="fas fa-file-import me-1"></i>Import Excel
+                <i class="fas fa-file-import me-1"></i>Import From Excel
               </button>
               <button class="btn btn-outline-info" @click="downloadExcelTemplate">
-                <i class="fas fa-download me-1"></i>Download Template Excel
+                <i class="fas fa-download me-1"></i>Download Excel Template
               </button>
             </div>
             <div class="col-md-6">
@@ -31,12 +31,9 @@
                 <input 
                   type="text" 
                   class="form-control" 
-                  placeholder="Cari preset..."
+                  placeholder="Search preset..."
                   v-model="searchQuery"
                 >
-                <span class="input-group-text">
-                  <i class="fas fa-search"></i>
-                </span>
               </div>
             </div>
           </div>
@@ -44,7 +41,7 @@
           <!-- Create New Preset Form -->
           <div v-if="showCreateForm" class="card mb-3">
             <div class="card-header bg-success text-white">
-              <h6 class="mb-0">Buat Preset Baru</h6>
+              <h6 class="mb-0">Create New Preset</h6>
             </div>
             <div class="card-body">
               <form @submit.prevent="handleCreatePreset">
@@ -53,17 +50,17 @@
                     <input 
                       type="text" 
                       class="form-control" 
-                      placeholder="Nama preset..."
+                      placeholder="Enter preset name..."
                       v-model="newPresetName"
                       required
                     >
                   </div>
                   <div class="col-md-4">
                     <button type="submit" class="btn btn-success me-2">
-                      <i class="fas fa-save me-1"></i>Simpan
+                      Save
                     </button>
                     <button type="button" class="btn btn-secondary" @click="cancelCreateForm">
-                      Batal
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -111,10 +108,10 @@
                 <div class="row">
                   <div class="col-12">
                     <button type="submit" class="btn btn-info me-2">
-                      <i class="fas fa-upload me-1"></i>Import
+                      Import
                     </button>
                     <button type="button" class="btn btn-secondary" @click="cancelImportForm">
-                      Batal
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -125,7 +122,7 @@
           <!-- Import Excel Form -->
           <div v-if="showImportExcel" class="card mb-3">
             <div class="card-header bg-secondary text-white">
-              <h6 class="mb-0">Import Preset dari Excel</h6>
+              <h6 class="mb-0">Import Preset from Excel</h6>
             </div>
             <div class="card-body">
               <form @submit.prevent="handleImportExcel">
@@ -137,10 +134,10 @@
                 <div class="row">
                   <div class="col-12">
                     <button type="submit" class="btn btn-secondary me-2">
-                      <i class="fas fa-upload me-1"></i>Import Excel
+                      Import from Excel
                     </button>
                     <button type="button" class="btn btn-secondary" @click="cancelImportExcel">
-                      Batal
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -153,13 +150,13 @@
             <table class="table table-striped table-hover">
               <thead class="table-dark">
                 <tr>
-                  <th @click="setSort('name')" style="cursor:pointer">Nama Preset <span v-if="sortKey==='name'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
-                  <th @click="setSort('createdAt')" style="cursor:pointer">Dibuat <span v-if="sortKey==='createdAt'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
-                  <th @click="setSort('restTime')" style="cursor:pointer">Race Time <span v-if="sortKey==='restTime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('name')" style="cursor:pointer">Preset Name <span v-if="sortKey==='name'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('createdAt')" style="cursor:pointer">Created At <span v-if="sortKey==='createdAt'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('restTime')" style="cursor:pointer">Total Race Time <span v-if="sortKey==='restTime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
                   <th @click="setSort('pitTime')" style="cursor:pointer">Pit Time <span v-if="sortKey==='pitTime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
-                  <th @click="setSort('driverSwapTime')" style="cursor:pointer">Driver Swap <span v-if="sortKey==='driverSwapTime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('driverSwapTime')" style="cursor:pointer">Long Pit Time <span v-if="sortKey==='driverSwapTime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
                   <th @click="setSort('totalPlans')" style="cursor:pointer">Total Plans <span v-if="sortKey==='totalPlans'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
-                  <th @click="setSort('avgStintDuration')" style="cursor:pointer">Avg Stint <span v-if="sortKey==='avgStintDuration'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+                  <th @click="setSort('avgStintDuration')" style="cursor:pointer">Average Stint <span v-if="sortKey==='avgStintDuration'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -188,14 +185,14 @@
           <!-- Empty State -->
           <div v-if="presets.length === 0" class="text-center py-5">
             <i class="fas fa-table fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">Belum Ada Preset</h5>
-            <p class="text-muted">Buat preset pertama Anda untuk menyimpan konfigurasi strategi.</p>
+            <h5 class="text-muted">No presets yet</h5>
+            <!-- <p class="text-muted">Buat preset pertama Anda untuk menyimpan konfigurasi strategi.</p> -->
           </div>
 
           <!-- No Results -->
           <div v-else-if="filteredPresets.length === 0" class="text-center py-3">
             <i class="fas fa-search fa-2x text-muted mb-2"></i>
-            <h6 class="text-muted">Tidak ada preset yang sesuai pencarian</h6>
+            <h6 class="text-muted">No presets found</h6>
           </div>
         </div>
 
@@ -206,7 +203,7 @@
             </small>
           </div>
           <button type="button" class="btn btn-secondary" @click="$emit('close')">
-            Tutup
+            Close
           </button>
         </div>
       </div>
@@ -490,15 +487,15 @@ function getColorName(hex) {
 function exportPresetsToExcel() {
   const header = [
     'Preset Name',
-    'Race Time (jam)',
-    'Pit Time (detik)',
-    'Driver Swap (detik)',
+    'Race Time (hours)',
+    'Pit Time (seconds)',
+    'Long Pit Time (seconds)',
     'Plan Name',
-    'Pace per Lap (detik)',
-    'Fuel per Lap (L)',
-    'Fuel Carried (L)',
+    'Average Lap Time (seconds)',
+    'Fuel per Lap (liters)',
+    'Fuel Carried (liters)',
     'Laps per Stint',
-    'Stint Duration (menit)',
+    'Stint Duration (minutes)',
     'Plan Color'
   ]
   const rows = []
@@ -556,19 +553,19 @@ function exportPresetsToExcel() {
 function downloadExcelTemplate() {
   const header = [
     'Preset Name',
-    'Race Time (jam)',
-    'Pit Time (detik)',
-    'Driver Swap (detik)',
+    'Race Time (hours)',
+    'Pit Time (seconds)',
+    'Long Pit Time (seconds)',
     'Plan Name',
-    'Pace per Lap (detik)',
-    'Fuel per Lap (L)',
-    'Fuel Carried (L)',
+    'Average Lap Time (seconds)',
+    'Fuel per Lap (liters)',
+    'Fuel Carried (liters)',
     'Laps per Stint',
-    'Stint Duration (menit)',
+    'Stint Duration (minutes)',
     'Plan Color'
   ]
   const example = [
-    'Contoh Preset',
+    'Preset Example',
     '8',
     '52',
     '210',

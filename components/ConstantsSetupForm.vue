@@ -1,17 +1,14 @@
 <template>
   <div class="card mb-4">
     <div class="card-header bg-primary text-white">
-      <h3 class="mb-0">🔧 Setup Konstanta Balapan</h3>
-      <small>Parameter ini biasanya tidak berubah dan hanya perlu diatur sekali</small>
+      <h3 class="mb-0">Race Information</h3>
     </div>
     <div class="card-body">
       <form @submit.prevent="handleSubmit">
         <div class="row">
-          <!-- Race Time -->
-          <div class="col-md-4 mb-3">
+          <div class="col-md-3 mb-3">
             <label for="raceTime" class="form-label">
-              <strong>Race Time</strong>
-              <i class="fas fa-info-circle ms-1" title="Total waktu balapan"></i>
+              <strong>Total Race Time</strong>
             </label>
             <div class="input-group">
               <input 
@@ -20,7 +17,7 @@
                 id="raceTime"
                 v-model.number="localConstants.raceTimeValue"
                 min="1"
-                step="0.5"
+                step="0.1"
                 required
               >
               <select 
@@ -29,8 +26,8 @@
                 v-model="raceTimeUnit"
                 @change="updateRaceTime"
               >
-                <option value="hours">Jam</option>
-                <option value="minutes">Menit</option>
+                <option value="hours">hours</option>
+                <option value="minutes">minutes</option>
               </select>
             </div>
             <small class="form-text text-muted">
@@ -38,57 +35,9 @@
             </small>
           </div>
 
-          <!-- Pit Time -->
-          <div class="col-md-4 mb-3">
-            <label for="pitTime" class="form-label">
-              <strong>Pit Time</strong>
-              <i class="fas fa-info-circle ms-1" title="Waktu yang dihabiskan di pit stop"></i>
-            </label>
-            <div class="input-group">
-              <input 
-                type="number" 
-                class="form-control" 
-                id="pitTime"
-                v-model.number="localConstants.pitTimeSeconds"
-                min="10"
-                step="1"
-                required
-              >
-              <span class="input-group-text">detik</span>
-            </div>
-            <small class="form-text text-muted">
-              {{ formatSecondsToTime(localConstants.pitTimeSeconds) }}
-            </small>
-          </div>
-
-          <!-- Long Pit Time / Driver Swap -->
-          <div class="col-md-3 mb-3">
-            <label for="longPitTime" class="form-label">
-              <strong>Long Pit Time</strong>
-              <i class="fas fa-info-circle ms-1" title="Waktu untuk driver swap / pit stop panjang"></i>
-            </label>
-            <div class="input-group">
-              <input 
-                type="number" 
-                class="form-control" 
-                id="longPitTime"
-                v-model.number="localConstants.longPitTimeSeconds"
-                min="60"
-                step="1"
-                required
-              >
-              <span class="input-group-text">detik</span>
-            </div>
-            <small class="form-text text-muted">
-              {{ formatSecondsToTime(localConstants.longPitTimeSeconds) }} (Driver Swap)
-            </small>
-          </div>
-
-          <!-- Mandatory Driver Swaps -->
           <div class="col-md-3 mb-3">
             <label for="mandatoryDriverSwaps" class="form-label">
               <strong>Mandatory Driver Swaps</strong>
-              <i class="fas fa-info-circle ms-1" title="Jumlah driver swap yang wajib dilakukan"></i>
             </label>
             <div class="input-group">
               <input 
@@ -100,60 +49,58 @@
                 step="1"
                 required
               >
-              <span class="input-group-text">swap</span>
+              <!-- <span class="input-group-text">swaps</span> -->
             </div>
-            <div class="d-flex justify-content-between align-items-center">
-              <small class="form-text text-muted">
-                Rekomendasi: {{ getRecommendedDriverSwaps() }} swap ({{ getDriverSwapRule() }})
-              </small>
-              <button 
-                type="button" 
-                class="btn btn-sm btn-outline-primary"
-                @click="useRecommendedDriverSwaps"
-                title="Gunakan rekomendasi"
+          </div>
+
+          <div class="col-md-3 mb-3">
+            <label for="pitTime" class="form-label">
+              <strong>Regular Pit Time</strong>
+            </label>
+            <div class="input-group">
+              <input 
+                type="text" 
+                class="form-control" 
+                id="pitTime"
+                v-model="inputPitTime"
+                placeholder="Example: 1:40 (mm:ss) or 100 (seconds only)"
+                default-value="52"
+                @input="updatePitTime"
+                required
               >
-                <i class="fas fa-magic"></i>
-              </button>
+              <!-- <span class="input-group-text">seconds</span> -->
             </div>
+            <small class="form-text text-muted">
+              {{ shownPitTime }}
+            </small>
+          </div>
+
+          <div class="col-md-3 mb-3">
+            <label for="longPitTime" class="form-label">
+              <strong>Long Pit Time</strong>
+            </label>
+            <div class="input-group">
+              <input 
+                type="text" 
+                class="form-control" 
+                id="longPitTime"
+                v-model="inputLongPitTime"
+                placeholder="Example: 1:40 (mm:ss) or 100 (seconds only)"
+                @input="updateLongPitTime"
+                required
+              >
+              <!-- <span class="input-group-text">seconds</span> -->
+            </div>
+            <small class="form-text text-muted">
+              {{ shownLongPitTime }} (including driver swap)
+            </small>
           </div>
         </div>
 
-        <!-- Summary -->
-        <div class="row mt-3">
-          <div class="col-12">
-            <div class="alert alert-info">
-              <h6><i class="fas fa-calculator me-2"></i>Ringkasan Konstanta:</h6>
-              <div class="row">
-                <div class="col-md-3">
-                  <strong>Total Race Time:</strong><br>
-                  {{ localConstants.raceTimeHours }} jam ({{ localConstants.raceTimeHours * 60 }} menit)
-                </div>
-                <div class="col-md-3">
-                  <strong>Pit Time:</strong><br>
-                  {{ localConstants.pitTimeSeconds }} detik ({{ formatSecondsToTime(localConstants.pitTimeSeconds) }})
-                </div>
-                <div class="col-md-3">
-                  <strong>Driver Swap Time:</strong><br>
-                  {{ localConstants.longPitTimeSeconds }} detik ({{ formatSecondsToTime(localConstants.longPitTimeSeconds) }})
-                </div>
-                <div class="col-md-3">
-                  <strong>Mandatory Driver Swaps:</strong><br>
-                  {{ localConstants.mandatoryDriverSwaps }} swap
-                  <br><small class="text-muted">{{ getDriverSwapRule() }}</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
         <div class="row">
           <div class="col-12">
-            <button type="submit" class="btn btn-primary btn-lg me-2">
-              <i class="fas fa-save me-2"></i>Simpan Konstanta
-            </button>
-            <button type="button" class="btn btn-outline-secondary" @click="resetToDefaults">
-              <i class="fas fa-undo me-2"></i>Reset ke Default
+            <button type="submit" class="btn btn-primary me-2">
+              Save Information
             </button>
           </div>
         </div>
@@ -164,7 +111,6 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { calculateMandatoryDriverSwaps } from '~/utils/raceCalculations'
 
 const props = defineProps({
   modelValue: {
@@ -179,6 +125,23 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'constants-set'])
+
+const inputPitTime = ref('')
+const inputLongPitTime = ref('')
+const shownPitTime = ref('')
+const shownLongPitTime = ref('')
+
+const updatePitTime = () => {
+  const seconds = parseInput(inputPitTime.value)
+  localConstants.value.pitTimeSeconds = seconds
+  shownPitTime.value = formatSecondsToTime(seconds)
+}
+
+const updateLongPitTime = () => {
+  const seconds = parseInput(inputLongPitTime.value)
+  localConstants.value.longPitTimeSeconds = seconds
+  shownLongPitTime.value = formatSecondsToTime(seconds)
+}
 
 // Local state
 const raceTimeUnit = ref('hours')
@@ -202,6 +165,20 @@ watch(() => props.modelValue, (newValue) => {
 }, { deep: true })
 
 // Methods
+const parseInput = (string) => {
+  if (!string) return 0
+  
+  // Check if format is MM:SS
+  if (string.includes(':')) {
+    const [minutes, seconds] = string.split(':').map(Number)
+    if (isNaN(minutes) || isNaN(seconds)) return 0
+    return (minutes * 60) + seconds
+  } else {
+    // Just seconds
+    return parseInt(string) || 0
+  }
+}
+
 const updateRaceTime = () => {
   if (raceTimeUnit.value === 'minutes') {
     localConstants.value.raceTimeHours = localConstants.value.raceTimeValue / 60
@@ -213,14 +190,18 @@ const updateRaceTime = () => {
 const formatRaceTimeDisplay = () => {
   const hours = localConstants.value.raceTimeHours
   const minutes = hours * 60
-  return `${hours} jam = ${minutes} menit`
+  if(raceTimeUnit.value === 'hours'){
+    return `${minutes} minutes`
+  }else{
+    return `${hours} hours`
+  }
 }
 
 const formatSecondsToTime = (seconds) => {
-  if (!seconds) return '0:00'
+  if (!seconds) return '0 seconds'
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
+  return `${mins === 0 ? "" : mins} ${mins === 0 ? "" : mins === 1 ? "minute" : "minutes"} ${secs === 0 ? "" : secs} ${secs === 0 ? "" : secs === 1 ? "second" : "seconds"}`
 }
 
 const handleSubmit = () => {
@@ -237,37 +218,6 @@ const handleSubmit = () => {
   
   emit('update:modelValue', constants)
   emit('constants-set', constants)
-}
-
-const resetToDefaults = () => {
-  localConstants.value = {
-    raceTimeValue: 8,
-    raceTimeHours: 8,
-    pitTimeSeconds: 52,
-    longPitTimeSeconds: 210,
-    mandatoryDriverSwaps: 3
-  }
-  raceTimeUnit.value = 'hours'
-}
-
-const getRecommendedDriverSwaps = () => {
-  // Estimate based on typical stint count for the race duration
-  const estimatedStints = Math.ceil(localConstants.value.raceTimeHours * 60 / 60) // Rough estimate
-  return calculateMandatoryDriverSwaps(estimatedStints, localConstants.value.raceTimeHours)
-}
-
-const getDriverSwapRule = () => {
-  const hours = localConstants.value.raceTimeHours
-  if (hours >= 2 && hours < 4) return 'Short endurance'
-  if (hours >= 4 && hours < 6) return 'Medium endurance'
-  if (hours >= 6 && hours < 8) return 'Long endurance'
-  if (hours >= 8 && hours < 12) return 'Very long endurance'
-  if (hours >= 12) return 'Ultra endurance'
-  return 'Sprint race'
-}
-
-const useRecommendedDriverSwaps = () => {
-  localConstants.value.mandatoryDriverSwaps = getRecommendedDriverSwaps()
 }
 
 // Watch for race time value changes

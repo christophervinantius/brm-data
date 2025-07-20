@@ -1,14 +1,13 @@
 <template>
   <div v-if="strategyCombinations && strategyCombinations.length > 0" class="card mb-4">
     <div class="card-header bg-warning text-dark">
-      <h3 class="mb-0">🏆 Hasil Strategi Kombinasi</h3>
-      <small>{{ strategyCombinations.length }} kombinasi strategi ditemukan</small>
+      <h3 class="mb-0">Strategy Combinations</h3>
+      <!-- <small>{{ strategyCombinations.length }} strategy combinations found</small> -->
     </div>
     <div class="card-body">
-      <!-- Filter Controls -->
-      <div class="row mb-3">
-        <div class="col-md-6 mb-2">
-          <label for="maxOvertime" class="form-label">Max Overtime (menit)</label>
+      <!-- <div class="row mb-3">
+        <div class="col-md-3 mb-2">
+          <label for="maxOvertime" class="form-label">Maximum Overtime (minutes)</label>
           <input 
             type="number" 
             class="form-control" 
@@ -16,11 +15,10 @@
             v-model.number="maxOvertimeFilter"
             min="0"
             step="5"
-            placeholder="Tanpa batas"
           >
         </div>
-        <div class="col-md-6 mb-2">
-          <label for="maxStintsFilter" class="form-label">Max Total Stint</label>
+        <div class="col-md-3 mb-2">
+          <label for="maxStintsFilter" class="form-label">Maximum Total Stint</label>
           <input 
             type="number" 
             class="form-control" 
@@ -28,24 +26,22 @@
             v-model.number="maxStintsFilter"
             min="1"
             step="1"
-            placeholder="Tanpa batas"
           >
         </div>
-      </div>
+      </div> -->
 
       <!-- Combinations Table -->
       <div class="table-responsive">
         <table class="table table-striped table-hover">
           <thead class="table-dark">
             <tr>
-              <th>Rank</th>
-              <th>Kombinasi Strategi</th>
+              <th>No.</th>
+              <th>Strategy Combination</th>
               <th @click="setSort('totalStints')" style="cursor:pointer">Total Stint <span v-if="sortKey==='totalStints'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
-              <th @click="setSort('totalWaktu')" style="cursor:pointer">Total Waktu <span v-if="sortKey==='totalWaktu'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
-              <th @click="setSort('overtime')" style="cursor:pointer">Overtime <span v-if="sortKey==='overtime'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
+              <th @click="setSort('totalWaktu')" style="cursor:pointer">Total Time <span v-if="sortKey==='totalWaktu'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
               <th @click="setSort('totalPits')" style="cursor:pointer">Total Pit <span v-if="sortKey==='totalPits'">{{ sortOrder==='asc'?'▲':'▼' }}</span></th>
               <th>Regular Pit</th>
-              <th>Driver Swap</th>
+              <th>Long Pit</th>
             </tr>
           </thead>
           <tbody>
@@ -66,9 +62,18 @@
                       {{ planCombo.quantity }}× {{ planCombo.plan.name }}
                     </span>
                   </div>
-                  <small class="text-muted">
+                  <div class="combination-details text-muted small">
+                    <ul class="list-unstyled mb-0">
+                      <li v-for="planCombo in combination.plans.filter(p => p.quantity > 0)" 
+                            :key="planCombo.plan.id">
+                        {{ planCombo.quantity }} × {{ formatMinutesToTime(planCombo.plan.stintDurationMinutes) }} = 
+                        {{ formatMinutesToTime(planCombo.quantity * planCombo.plan.stintDurationMinutes) }}
+                      </li>
+                    </ul>
+                  </div>
+                  <!-- <small class="text-muted">
                     {{ formatCombination(combination) }}
-                  </small>
+                  </small> -->
                 </div>
               </td>
               <td>
@@ -78,13 +83,10 @@
                 <div>
                   <strong>{{ formatMinutesToTime(combination.totalRaceTime || combination.totalTime) }}</strong>
                   <br>
-                  <small class="text-muted">Stint: {{ formatMinutesToTime(combination.totalTime) }}</small>
+                  <small class="text-muted">Stint Time: {{ formatMinutesToTime(combination.totalTime) }}</small>
+                  <br>
+                  <small class="text-muted">Pit Time: {{ formatMinutesToTime((combination.totalRaceTime || combination.totalTime) - combination.totalTime) }}</small>
                 </div>
-              </td>
-              <td>
-                <span class="badge" :class="getOvertimeBadgeClass(combination.overtime)">
-                  {{ formatOvertime(combination.overtime) }}
-                </span>
               </td>
               <td>{{ combination.totalPits }}</td>
               <td>{{ combination.regularPits || (combination.totalPits - combination.driverSwaps) }}</td>
@@ -95,80 +97,9 @@
       </div>
 
       <div v-if="filteredCombinations.length === 0" class="alert alert-warning">
-        <h6>Tidak ada kombinasi yang sesuai filter</h6>
-        <p class="mb-0">Coba sesuaikan filter overtime atau maksimal stint di atas.</p>
+        <h6>No combinations found</h6>
       </div>
 
-      <!-- Detailed View for Best Strategy -->
-      <div v-if="strategyCombinations.length > 0" class="mt-4">
-        <h5>📋 Detail Strategi :</h5>
-        <div class="card">
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6">
-                <h6>Rincian Stint:</h6>
-                <ul class="list-unstyled">
-                  <li v-for="planCombo in strategyCombinations[0].plans.filter(p => p.quantity > 0)" 
-                      :key="planCombo.plan.id" class="mb-2">
-                    <span class="badge me-2" :style="{ backgroundColor: planCombo.plan.color }">
-                      {{ planCombo.quantity }}×
-                    </span>
-                    <strong>{{ planCombo.plan.name }}</strong>
-                    <br>
-                    <small class="text-muted ms-4">
-                      {{ planCombo.quantity }} stint × {{ planCombo.plan.stintDurationMinutes }} menit = 
-                      {{ planCombo.quantity * planCombo.plan.stintDurationMinutes }} menit
-                    </small>
-                  </li>
-                </ul>
-              </div>
-              <div class="col-md-6">
-                <h6>Ringkasan Waktu:</h6>
-                <table class="table table-sm">
-                  <tbody>
-                    <tr>
-                      <td>Total Race Time:</td>
-                      <td><strong>{{ formatMinutesToTime(strategyCombinations[0].totalRaceTime || strategyCombinations[0].totalTime) }}</strong></td>
-                    </tr>
-                    <tr>
-                      <td>Total Stint Time:</td>
-                      <td>{{ formatMinutesToTime(strategyCombinations[0].totalTime) }}</td>
-                    </tr>
-                    <tr>
-                      <td>Total Pit Time:</td>
-                      <td>{{ formatMinutesToTime((strategyCombinations[0].totalRaceTime || strategyCombinations[0].totalTime) - strategyCombinations[0].totalTime) }}</td>
-                    </tr>
-                    <tr>
-                      <td>Waktu Race:</td>
-                      <td>{{ formatMinutesToTime(availableStintTime + ((strategyCombinations[0].totalRaceTime || strategyCombinations[0].totalTime) - strategyCombinations[0].totalTime)) }}</td>
-                    </tr>
-                    <tr>
-                      <td>Selisih:</td>
-                      <td>
-                        <span :class="strategyCombinations[0].overtime >= 0 ? 'text-warning' : 'text-success'">
-                          {{ formatOvertime(strategyCombinations[0].overtime) }}
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Total Pit Stops:</td>
-                      <td><strong>{{ strategyCombinations[0].totalPits }}</strong></td>
-                    </tr>
-                    <tr>
-                      <td>Regular Pit Stops:</td>
-                      <td><strong>{{ strategyCombinations[0].regularPits || (strategyCombinations[0].totalPits - strategyCombinations[0].driverSwaps) }}</strong></td>
-                    </tr>
-                    <tr>
-                      <td>Driver Swaps:</td>
-                      <td><strong>{{ strategyCombinations[0].driverSwaps }}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
   
@@ -271,9 +202,9 @@ const formatMinutesToTime = (minutes) => {
   const hours = Math.floor(rounded / 60)
   const mins = rounded % 60
   if (hours > 0) {
-    return `${hours}h ${mins}m`
+    return `${hours} hours ${mins} minutes`
   } else {
-    return `${mins}m`
+    return `${mins} minutes`
   }
 }
 

@@ -41,9 +41,8 @@ export function calculateStintFromPlan(plan) {
  */
 export function generateStrategyCombinations(savedPlans, totalRaceTimeMinutes, constants) {
   const combinations = []
-  const maxPlansPerType = 8 // Maximum plans of each type
-  const maxTotalStints = 15 // Maximum total stints
-  const maxOvertimeMinutes = 30 // Maximum allowed overtime
+  const maxPlansPerType = 30 // Maximum plans of each type
+  const maxOvertimeMinutes = 10 // Maximum allowed overtime
 
   // Generate combinations using recursive approach
   function generateCombinations(planIndex, currentCombination, remainingTime) {
@@ -64,7 +63,7 @@ export function generateStrategyCombinations(savedPlans, totalRaceTimeMinutes, c
           const estimatedOvertime = estimatedTotalRaceTime - totalRaceTimeMinutes
           
           // Only proceed if estimated overtime is within acceptable range
-          if (estimatedOvertime <= maxOvertimeMinutes) {
+          if (estimatedOvertime <= maxOvertimeMinutes && estimatedOvertime >= 0) {
             // Generate optimized driver swap combinations for this strategy
             const optimizedCombinations = generateOptimizedDriverSwapCombinations(
               currentCombination, 
@@ -88,11 +87,6 @@ export function generateStrategyCombinations(savedPlans, totalRaceTimeMinutes, c
       const planTime = quantity * plan.stintDurationMinutes
       const newTotalStints = currentCombination.totalStints + quantity
       const newTotalTime = currentCombination.totalTime + planTime
-
-      // Skip if too many stints
-      if (newTotalStints > maxTotalStints) {
-        continue
-      }
 
       // Rough estimate to skip obviously bad combinations early
       const estimatedPits = Math.max(0, newTotalStints - 1)
@@ -214,19 +208,19 @@ export function validatePlan(plan) {
   const errors = []
   
   if (!plan.paceSeconds || plan.paceSeconds <= 0) {
-    errors.push('Pace must be greater than 0 seconds')
+    errors.push('Average lap time must be greater than 0 seconds!')
   }
   
   if (!plan.fuelPerLap || plan.fuelPerLap <= 0) {
-    errors.push('View per lap must be greater than 0')
+    errors.push('Fuel per lap must be greater than 0 liters!')
   }
   
-  if (!plan.fuelCarried || plan.fuelCarried <= 0) {
-    errors.push('Fuel carried must be greater than 0')
+  if ((!plan.fuelCarried || plan.fuelCarried <= 0) && !plan.stintDurationMinutes) {
+    errors.push('Fuel carried must be greater than 0 liters!')
   }
   
-  if (plan.fuelPerLap > plan.fuelCarried) {
-    errors.push('View per lap cannot be greater than fuel carried')
+  if ((plan.fuelPerLap > plan.fuelCarried) && !plan.stintDurationMinutes) {
+    errors.push('Fuel per lap cannot be greater than fuel carried!')
   }
   
   return {

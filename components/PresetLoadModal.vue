@@ -92,14 +92,14 @@
           <!-- Empty State -->
           <div v-if="presets.length === 0" class="text-center py-5">
             <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">Belum Ada Preset Tersimpan</h5>
-            <p class="text-muted">Simpan konfigurasi pertama Anda untuk mulai menggunakan preset.</p>
+            <h5 class="text-muted">No presets yet</h5>
+            <!-- <p class="text-muted">Simpan konfigurasi pertama Anda untuk mulai menggunakan preset.</p> -->
           </div>
 
           <!-- No Search Results -->
           <div v-else-if="filteredPresets.length === 0" class="text-center py-3">
             <i class="fas fa-search fa-2x text-muted mb-2"></i>
-            <h6 class="text-muted">Tidak ada preset yang sesuai pencarian</h6>
+            <h6 class="text-muted">No presets found</h6>
           </div>
         </div>
 

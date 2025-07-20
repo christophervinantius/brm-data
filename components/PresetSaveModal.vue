@@ -13,7 +13,7 @@
           <form @submit.prevent="handleSave">
             <div class="mb-3">
               <label for="presetName" class="form-label">
-                <strong>Nama Preset</strong>
+                <strong>Preset Name</strong>
               </label>
               <input 
                 type="text" 
