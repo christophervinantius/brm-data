@@ -211,7 +211,7 @@ const handleLoadPreset = async (presetId) => {
   try {
     const presetData = await loadPreset(presetId)
     loadFromPreset(presetData)
-    showNotification('success', 'Preset berhasil dimuat!')
+    showNotification('success', 'Preset successfully loaded!')
     closeLoadModal()
     closePresetTable()
   } catch (error) {
@@ -222,7 +222,7 @@ const handleLoadPreset = async (presetId) => {
 const handleDeletePreset = async (presetId) => {
   try {
     await deletePreset(presetId)
-    showNotification('success', 'Preset berhasil dihapus!')
+    showNotification('success', 'Preset successfully deleted!')
   } catch (error) {
     showNotification('error', error.message)
   }
@@ -231,7 +231,7 @@ const handleDeletePreset = async (presetId) => {
 const handleDuplicatePreset = async (presetId, newName) => {
   try {
     await duplicatePreset(presetId, newName)
-    showNotification('success', `Preset "${newName}" berhasil diduplikasi!`)
+    showNotification('success', `Preset "${newName}" successfully duplicated!`)
   } catch (error) {
     showNotification('error', error.message)
   }
@@ -242,7 +242,7 @@ const handleExportPreset = async (presetId) => {
     const jsonData = await exportPreset(presetId)
     const preset = presets.value.find(p => p.id === presetId)
     downloadJson(jsonData, `${preset.name.replace(/\s+/g, '-').toLowerCase()}-preset.json`)
-    showNotification('success', 'Preset berhasil diekspor!')
+    showNotification('success', 'Preset successfully exported!')
   } catch (error) {
     showNotification('error', error.message)
   }
@@ -253,10 +253,10 @@ const handleImportPreset = async (jsonData, newName) => {
     await importPreset(jsonData, newName)
     if (Array.isArray(jsonData)) {
       // Import dari Excel, tampilkan semua nama preset
-      const names = jsonData.map(p => p.name || 'Tanpa Nama').join(', ')
-      showNotification('success', `Preset: ${names} berhasil diimpor!`)
+      const names = jsonData.map(p => p.name || 'No Name').join(', ')
+      showNotification('success', `Preset: ${names} successfully imported!`)
     } else {
-      showNotification('success', `Preset "${newName || (jsonData && jsonData.name) || 'Tanpa Nama'}" berhasil diimpor!`)
+      showNotification('success', `Preset "${newName || (jsonData && jsonData.name) || 'No Name'}" successfully imported!`)
     }
   } catch (error) {
     showNotification('error', error.message)

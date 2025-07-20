@@ -4,7 +4,7 @@
       <div class="modal-content">
         <div class="modal-header bg-info text-white">
           <h5 class="modal-title">
-            <i class="fas fa-folder-open me-2"></i>Load Preset Strategi
+            Load Preset
           </h5>
           <button type="button" class="btn-close btn-close-white" @click="$emit('close')"></button>
         </div>
@@ -16,12 +16,9 @@
               <input 
                 type="text" 
                 class="form-control" 
-                placeholder="Cari preset..."
+                placeholder="Search preset..."
                 v-model="searchQuery"
               >
-              <span class="input-group-text">
-                <i class="fas fa-search"></i>
-              </span>
             </div>
           </div>
 
@@ -35,21 +32,21 @@
                       <h6 class="card-title">
                         {{ preset.name }}
                         <small class="text-muted ms-2">
-                          {{ formatDate(preset.createdAt) }}
+                          Created at {{ formatDate(preset.createdAt) }}
                         </small>
                       </h6>
                       
                       <div class="row">
                         <div class="col-sm-6">
-                          <small class="text-muted">Konstanta:</small>
+                          <small class="text-muted">Race Information</small>
                           <ul class="list-unstyled small">
-                            <li>Rest: {{ preset.constants.restTimeHours }}h</li>
-                            <li>Pit: {{ preset.constants.pitTimeSeconds }}s</li>
-                            <li>Swap: {{ preset.constants.longPitTimeSeconds }}s</li>
+                            <li>Total Race Time: {{ preset.constants.raceTimeHours }} hours </li>
+                            <li>Regular Pit Time: {{ formatSecondsToTime(preset.constants.pitTimeSeconds) }}</li>
+                            <li>Long Pit Time: {{ formatSecondsToTime(preset.constants.longPitTimeSeconds) }}</li>
                           </ul>
                         </div>
                         <div class="col-sm-6">
-                          <small class="text-muted">Rencana ({{ preset.savedPlans.length }}):</small>
+                          <small class="text-muted">Strategy Plans ({{ preset.savedPlans.length }})</small>
                           <div class="plan-badges">
                             <span 
                               v-for="plan in preset.savedPlans.slice(0, 4)" 
@@ -60,7 +57,7 @@
                               {{ plan.name }}
                             </span>
                             <span v-if="preset.savedPlans.length > 4" class="badge bg-secondary">
-                              +{{ preset.savedPlans.length - 4 }} lagi
+                              +{{ preset.savedPlans.length - 4 }} more
                             </span>
                           </div>
                         </div>
@@ -73,13 +70,13 @@
                           class="btn btn-success" 
                           @click.stop="loadPreset(preset)"
                         >
-                          <i class="fas fa-play me-1"></i>Load
+                          Load
                         </button>
                         <button 
                           class="btn btn-outline-danger" 
                           @click.stop="deletePreset(preset)"
                         >
-                          <i class="fas fa-trash me-1"></i>Hapus
+                          Delete
                         </button>
                       </div>
                     </div>
@@ -106,11 +103,11 @@
         <div class="modal-footer">
           <div class="me-auto">
             <small class="text-muted">
-              {{ filteredPresets.length }} dari {{ presets.length }} preset
+              {{ filteredPresets.length }} from {{ presets.length }} {{ presets.length === 1 ? 'preset' : 'presets' }}
             </small>
           </div>
           <button type="button" class="btn btn-secondary" @click="$emit('close')">
-            Tutup
+            Close
           </button>
         </div>
       </div>
@@ -136,6 +133,13 @@ const emit = defineEmits(['close', 'load', 'delete'])
 
 // Local state
 const searchQuery = ref('')
+
+const formatSecondsToTime = (seconds) => {
+  if (!seconds) return '0 seconds'
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins === 0 ? "" : mins} ${mins === 0 ? "" : mins === 1 ? "minute" : "minutes"} ${secs === 0 ? "" : secs} ${secs === 0 ? "" : secs === 1 ? "second" : "seconds"}`
+}
 
 // Computed
 const filteredPresets = computed(() => {
@@ -164,9 +168,9 @@ const deletePreset = (preset) => {
 }
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('id-ID', {
+  return new Date(dateString).toLocaleDateString('en-GB', {
     day: '2-digit',
-    month: '2-digit',
+    month: 'long',
     year: 'numeric'
   })
 }

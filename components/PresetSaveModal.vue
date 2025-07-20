@@ -4,7 +4,7 @@
       <div class="modal-content">
         <div class="modal-header bg-success text-white">
           <h5 class="modal-title">
-            <i class="fas fa-save me-2"></i>Simpan Preset Strategi
+            Save Preset
           </h5>
           <button type="button" class="btn-close btn-close-white" @click="$emit('close')"></button>
         </div>
@@ -20,37 +20,36 @@
                 class="form-control" 
                 id="presetName"
                 v-model="presetName"
-                placeholder="contoh: Endurance Race Setup, Sprint Strategy, dll."
+                placeholder="Example: endurance setup, sprint strategy, etc."
                 required
                 ref="nameInput"
               >
-              <div class="form-text">
-                Berikan nama yang mudah diingat untuk preset ini
-              </div>
             </div>
 
             <!-- Preview what will be saved -->
             <div class="mb-3">
-              <h6>Yang akan disimpan:</h6>
+              <label class="form-label">
+                <strong>Saved Data</strong>
+              </label>
               <div class="card">
                 <div class="card-body">
                   <div class="row">
-                    <div class="col-md-6">
-                      <h6 class="text-primary">Konstanta:</h6>
+                    <div class="col-md-12">
+                      <h6 class="text-primary">Race Information</h6>
                       <ul class="list-unstyled small">
-                        <li><strong>Race Time:</strong> {{ constants.raceTimeHours }} jam</li>
-                        <li><strong>Pit Time:</strong> {{ constants.pitTimeSeconds }} detik</li>
-                        <li><strong>Driver Swap:</strong> {{ constants.longPitTimeSeconds }} detik</li>
+                        <li><strong>Total Race Time:</strong> {{ constants.raceTimeHours }} hours</li>
+                        <li><strong>Regular Pit Time:</strong> {{ formatSecondsToTime(constants.pitTimeSeconds) }}</li>
+                        <li><strong>Long Pit Time:</strong> {{ formatSecondsToTime(constants.longPitTimeSeconds) }}</li>
                       </ul>
                     </div>
-                    <div class="col-md-6">
-                      <h6 class="text-success">Rencana ({{ savedPlans.length }}):</h6>
+                    <div class="col-md-12">
+                      <h6 class="text-success">Strategy Plans ({{ savedPlans.length }})</h6>
                       <ul class="list-unstyled small">
                         <li v-for="plan in savedPlans" :key="plan.id">
                           <span class="badge me-1" :style="{ backgroundColor: plan.color }">
                             {{ plan.name }}
                           </span>
-                          {{ plan.stintDurationMinutes }}m
+                          - {{ formatMinutesToTime(plan.stintDurationMinutes) }}
                         </li>
                       </ul>
                     </div>
@@ -61,10 +60,9 @@
 
             <!-- Existing presets warning -->
             <div v-if="existingPresets.length > 0" class="mb-3">
-              <h6>Preset yang sudah ada:</h6>
+              <h6>Used Preset Names</h6>
               <div class="alert alert-warning">
                 <small>
-                  <strong>Nama yang sudah digunakan:</strong>
                   {{ existingPresets.join(', ') }}
                 </small>
               </div>
@@ -72,10 +70,10 @@
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
               <button type="button" class="btn btn-secondary" @click="$emit('close')">
-                Batal
+                Cancel
               </button>
               <button type="submit" class="btn btn-success" :disabled="!presetName.trim()">
-                <i class="fas fa-save me-1"></i>Simpan Preset
+                Save
               </button>
             </div>
           </form>
@@ -112,6 +110,24 @@ const emit = defineEmits(['close', 'save'])
 // Local state
 const presetName = ref('')
 const nameInput = ref(null)
+
+const formatSecondsToTime = (seconds) => {
+  if (!seconds) return '0 seconds'
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins === 0 ? "" : mins} ${mins === 0 ? "" : mins === 1 ? "minute" : "minutes"} ${secs === 0 ? "" : secs} ${secs === 0 ? "" : secs === 1 ? "second" : "seconds"}`
+}
+
+const formatMinutesToTime = (minutes) => {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  
+  if (hours > 0) {
+    return `${hours} ${hours === 1 ? "hour" : "hours"} ${mins} ${mins === 1 ? "minute" : "minutes"}`
+  } else {
+    return `${mins} ${mins === 1 ? "minute" : "minutes"}`
+  }
+}
 
 // Methods
 const handleSave = () => {
