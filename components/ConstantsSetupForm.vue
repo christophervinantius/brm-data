@@ -1,13 +1,13 @@
 <template>
-  <div class="card mb-4">
-    <div class="card-header bg-primary text-white">
+  <div class="card mb-4 bg-dark border border-success">
+    <div class="card-header bg-success text-white">
       <h3 class="mb-0">Race Information</h3>
     </div>
     <div class="card-body">
       <form @submit.prevent="handleSubmit">
         <div class="row">
           <div class="col-md-3 mb-3">
-            <label for="raceTime" class="form-label">
+            <label for="raceTime" class="form-label text-white">
               <strong>Total Race Time</strong>
             </label>
             <div class="input-group">
@@ -30,13 +30,13 @@
                 <option value="minutes">minutes</option>
               </select>
             </div>
-            <small class="form-text text-muted">
+            <small class="form-text text-white">
               {{ formatRaceTimeDisplay() }}
             </small>
           </div>
 
           <div class="col-md-3 mb-3">
-            <label for="mandatoryDriverSwaps" class="form-label">
+            <label for="mandatoryDriverSwaps" class="form-label text-white">
               <strong>Mandatory Driver Swaps</strong>
             </label>
             <div class="input-group">
@@ -49,12 +49,11 @@
                 step="1"
                 required
               >
-              <!-- <span class="input-group-text">swaps</span> -->
             </div>
           </div>
 
           <div class="col-md-3 mb-3">
-            <label for="pitTime" class="form-label">
+            <label for="pitTime" class="form-label text-white">
               <strong>Regular Pit Time</strong>
             </label>
             <div class="input-group">
@@ -68,15 +67,14 @@
                 @input="updatePitTime"
                 required
               >
-              <!-- <span class="input-group-text">seconds</span> -->
             </div>
-            <small class="form-text text-muted">
+            <small class="form-text text-white">
               {{ shownPitTime }}
             </small>
           </div>
 
           <div class="col-md-3 mb-3">
-            <label for="longPitTime" class="form-label">
+            <label for="longPitTime" class="form-label text-white">
               <strong>Long Pit Time</strong>
             </label>
             <div class="input-group">
@@ -89,9 +87,8 @@
                 @input="updateLongPitTime"
                 required
               >
-              <!-- <span class="input-group-text">seconds</span> -->
             </div>
-            <small class="form-text text-muted">
+            <small class="form-text text-white">
               {{ shownLongPitTime }} (including driver swap)
             </small>
           </div>
@@ -99,7 +96,7 @@
 
         <div class="row">
           <div class="col-12">
-            <button type="submit" class="btn btn-primary me-2">
+            <button type="submit" class="btn btn-success me-2">
               Save Information
             </button>
           </div>
@@ -110,9 +107,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
+import { parseInput } from '~/utils/parseString'
 
 const props = defineProps({
+  type: {
+    type: String,
+    default: "fuel"
+  },
   modelValue: {
     type: Object,
     default: () => ({
@@ -143,7 +145,6 @@ const updateLongPitTime = () => {
   shownLongPitTime.value = formatSecondsToTime(seconds)
 }
 
-// Local state
 const raceTimeUnit = ref('hours')
 const localConstants = ref({
   raceTimeValue: props.modelValue.raceTimeHours,
@@ -153,7 +154,6 @@ const localConstants = ref({
   mandatoryDriverSwaps: props.modelValue.mandatoryDriverSwaps
 })
 
-// Watch for prop changes
 watch(() => props.modelValue, (newValue) => {
   localConstants.value = {
     raceTimeValue: newValue.raceTimeHours,
@@ -162,22 +162,16 @@ watch(() => props.modelValue, (newValue) => {
     longPitTimeSeconds: newValue.longPitTimeSeconds,
     mandatoryDriverSwaps: newValue.mandatoryDriverSwaps
   }
-}, { deep: true })
 
-// Methods
-const parseInput = (string) => {
-  if (!string) return 0
-  
-  // Check if format is MM:SS
-  if (string.includes(':')) {
-    const [minutes, seconds] = string.split(':').map(Number)
-    if (isNaN(minutes) || isNaN(seconds)) return 0
-    return (minutes * 60) + seconds
-  } else {
-    // Just seconds
-    return parseInt(string) || 0
+  if (newValue.pitTimeSeconds != null) {
+    inputPitTime.value = String(newValue.pitTimeSeconds)
+    shownPitTime.value = formatSecondsToTime(newValue.pitTimeSeconds)
   }
-}
+  if (newValue.longPitTimeSeconds != null) {
+    inputLongPitTime.value = String(newValue.longPitTimeSeconds)
+    shownLongPitTime.value = formatSecondsToTime(newValue.longPitTimeSeconds)
+  }
+}, { deep: true })
 
 const updateRaceTime = () => {
   if (raceTimeUnit.value === 'minutes') {
@@ -204,68 +198,26 @@ const formatSecondsToTime = (seconds) => {
   return `${mins === 0 ? "" : mins} ${mins === 0 ? "" : mins === 1 ? "minute" : "minutes"} ${secs === 0 ? "" : secs} ${secs === 0 ? "" : secs === 1 ? "second" : "seconds"}`
 }
 
-const handleSubmit = () => {
-  // Update race time based on unit
+const handleSubmit = (e) => {
+  e.preventDefault()
   updateRaceTime()
+
+  let constants;
   
-  // Emit the constants
-  const constants = {
-    raceTimeHours: localConstants.value.raceTimeHours,
-    pitTimeSeconds: localConstants.value.pitTimeSeconds,
-    longPitTimeSeconds: localConstants.value.longPitTimeSeconds,
-    mandatoryDriverSwaps: localConstants.value.mandatoryDriverSwaps
+  if(props.type === 'endurance'){
+    constants = {
+      raceTimeHours: localConstants.value.raceTimeHours,
+      pitTimeSeconds: localConstants.value.pitTimeSeconds,
+      longPitTimeSeconds: localConstants.value.longPitTimeSeconds,
+      mandatoryDriverSwaps: localConstants.value.mandatoryDriverSwaps
+    }
   }
   
   emit('update:modelValue', constants)
   emit('constants-set', constants)
 }
 
-// Watch for race time value changes
 watch(() => localConstants.value.raceTimeValue, () => {
   updateRaceTime()
 })
 </script>
-
-<style scoped>
-.card-header {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-}
-
-.form-label {
-  font-weight: 600;
-  color: #495057;
-}
-
-.form-label i {
-  color: #6c757d;
-  cursor: help;
-}
-
-.input-group-text {
-  background-color: #f8f9fa;
-  border-color: #ced4da;
-  font-weight: 500;
-}
-
-.alert-info {
-  background-color: #e7f3ff;
-  border-color: #b3d9ff;
-  color: #004085;
-}
-
-.btn-lg {
-  padding: 0.75rem 1.5rem;
-  font-size: 1.1rem;
-}
-
-@media (max-width: 768px) {
-  .form-label {
-    font-size: 0.9rem;
-  }
-  
-  .btn-lg {
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-}
-</style>

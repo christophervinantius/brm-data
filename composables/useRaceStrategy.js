@@ -1,51 +1,41 @@
-/**
- * Composable for race strategy management with plan-based approach
- */
-
 import { ref, computed } from 'vue'
 import { calculateStintFromPlan, generateStrategyCombinations } from '~/utils/raceCalculations'
+import { parseInput } from '~/utils/parseString'
 
 export const useRaceStrategy = () => {
-  // Default constant parameters (set once, rarely changed)
   const defaultConstants = {
-    raceTimeHours: 8, // Race time in hours (can be input as hours or minutes)
-    pitTimeSeconds: 52, // Pit time in seconds
-    longPitTimeSeconds: 210, // Long pit time / driver swap in seconds (3.5 minutes)
-    mandatoryDriverSwaps: 3, // Number of mandatory driver swaps
+    raceTimeHours: 8,
+    pitTimeSeconds: 52,
+    longPitTimeSeconds: 210,
+    mandatoryDriverSwaps: 3,
   }
 
-  // Default plan template
   const defaultPlanTemplate = {
     id: null,
     name: '',
     color: '#007bff',
-    paceSeconds: 100, // Lap pace in seconds (can be input as MM:SS or seconds)
-    fuelPerLap: 1.5, // View per lap (fuel consumption rate)
-    fuelCarried: 50, // Amount of fuel carried
-    // Calculated values
+    paceSeconds: 100,
+    fuelPerLap: 1.5,
+    fuelCarried: 50,
     lapsPerStint: 0,
     stintDurationMinutes: 0,
     fuelPerLap: 0
   }
 
-  // Reactive state
   const constants = ref({ ...defaultConstants })
-  const savedPlans = ref([]) // Array of saved plans
-  const currentPlan = ref({ ...defaultPlanTemplate }) // Plan being edited
-  const strategyCombinations = ref([]) // Generated strategy combinations
+  const savedPlans = ref([])
+  const currentPlan = ref({ ...defaultPlanTemplate })
+  const strategyCombinations = ref([])
   const isCalculating = ref(false)
-  const isConstantsSet = ref(false) // Track if constants are set
+  const isConstantsSet = ref(false)
 
-  // Computed properties
   const totalRaceTimeMinutes = computed(() => {
     return constants.value.raceTimeHours * 60
   })
 
   const totalPitTimeMinutes = computed(() => {
-    // Calculate based on strategy combinations
     if (strategyCombinations.value.length === 0) {
-      // If no strategies yet, estimate based on typical race
-      const estimatedStints = Math.ceil(constants.value.raceTimeHours * 60 / 60) // Rough estimate
+      const estimatedStints = Math.ceil(constants.value.raceTimeHours * 60 / 60)
       const estimatedPits = Math.max(0, estimatedStints - 1)
       const estimatedDriverSwaps = constants.value.mandatoryDriverSwaps || 0
       const estimatedRegularPits = Math.max(0, estimatedPits - estimatedDriverSwaps)
@@ -70,7 +60,6 @@ export const useRaceStrategy = () => {
     return totalRaceTimeMinutes.value - totalPitTimeMinutes.value
   })
 
-  // Methods
   const setConstants = (newConstants) => {
     constants.value = { ...newConstants }
     isConstantsSet.value = true
@@ -79,7 +68,6 @@ export const useRaceStrategy = () => {
   const updateCurrentPlan = (planData) => {
     currentPlan.value = { ...currentPlan.value, ...planData }
     
-    // Recalculate plan values
     const calculated = calculateStintFromPlan(currentPlan.value)
     currentPlan.value.lapsPerStint = calculated.lapsPerStint
     currentPlan.value.stintDurationMinutes = calculated.stintDurationMinutes
@@ -91,7 +79,6 @@ export const useRaceStrategy = () => {
       throw new Error('Plan name is required')
     }
 
-    // Check if name already exists
     if (savedPlans.value.some(plan => plan.name === planName)) {
       throw new Error('Plan name already exists')
     }
@@ -103,7 +90,6 @@ export const useRaceStrategy = () => {
       color: planColor || currentPlan.value.color
     }
 
-    // Recalculate to ensure latest values
     const calculated = calculateStintFromPlan(newPlan)
     newPlan.lapsPerStint = calculated.lapsPerStint
     newPlan.stintDurationMinutes = calculated.stintDurationMinutes
@@ -111,7 +97,6 @@ export const useRaceStrategy = () => {
 
     savedPlans.value.push(newPlan)
     
-    // Reset current plan
     resetCurrentPlan()
     
     return newPlan
@@ -150,19 +135,6 @@ export const useRaceStrategy = () => {
     }
   }
 
-  const parsePaceInput = (paceString) => {
-    if (!paceString) return 0
-    
-    // Check if format is MM:SS
-    if (paceString.includes(':')) {
-      const [minutes, seconds] = paceString.split(':').map(Number)
-      return (minutes * 60) + seconds
-    } else {
-      // Just seconds
-      return parseInt(paceString) || 0
-    }
-  }
-
   const formatSecondsToTime = (seconds) => {
     if (!seconds) return '0:00'
     const mins = Math.floor(seconds / 60)
@@ -172,19 +144,17 @@ export const useRaceStrategy = () => {
 
   const formatTimeInput = (value, unit = 'hours') => {
     if (unit === 'minutes') {
-      return value / 60 // Convert minutes to hours
+      return value / 60
     }
     return value
   }
 
   const loadFromPreset = (presetData) => {
-    // Load constants
+    console.log("Loading preset:", presetData)
     setConstants(presetData.constants)
     
-    // Load saved plans
     savedPlans.value = presetData.savedPlans.map(plan => ({ ...plan }))
     
-    // Reset current plan and strategy combinations
     resetCurrentPlan()
     strategyCombinations.value = []
   }
@@ -197,7 +167,6 @@ export const useRaceStrategy = () => {
   }
 
   return {
-    // State
     constants,
     savedPlans,
     currentPlan,
@@ -205,19 +174,17 @@ export const useRaceStrategy = () => {
     isCalculating,
     isConstantsSet,
     
-    // Computed
     totalRaceTimeMinutes,
     totalPitTimeMinutes,
     availableStintTimeMinutes,
     
-    // Methods
     setConstants,
     updateCurrentPlan,
     savePlan,
     deletePlan,
     resetCurrentPlan,
     calculateStrategies,
-    parsePaceInput,
+    parseInput,
     formatSecondsToTime,
     formatTimeInput,
     loadFromPreset,

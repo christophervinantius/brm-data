@@ -1,41 +1,49 @@
 <template>
-  <div class="container-fluid py-4">
+  <div class="container-fluid py-4 bg-dark min-vh-100">
     <div class="row">
       <div class="col-12">
         <!-- Header -->
         <div class="text-center mb-4">
           <h1 class="display-4 fw-bold text-primary">Race Planner</h1>
-          
-          <!-- Preset Actions -->
-          <div class="btn-group" role="group">
-            <button class="btn btn-outline-primary" @click="openPresetTable">
-              Presets
-            </button>
-            <button class="btn btn-outline-success" @click="openSaveModal" :disabled="!canSavePreset">
-              Save Preset
-            </button>
-            <button class="btn btn-outline-info" @click="openLoadModal" :disabled="presets.length === 0">
-              Load Preset
-            </button>
+
+          <div class="d-flex gap-2 flex-column align-items-center w-100">
+            <div class="btn-group" role="group">
+              <button class="btn btn-danger" @click="setType('fuel')">
+                Fuel Calculator
+              </button>
+              <button class="btn btn-success" @click="setType('endurance')">
+                Strategy Planner
+              </button>
+            </div>
+            
+            <div v-if="type === 'endurance'" class="btn-group" role="group">
+              <button class="btn btn-outline-primary" @click="openPresetTable">
+                Presets
+              </button>
+              <button class="btn btn-outline-warning" @click="openSaveModal" :disabled="!canSavePreset">
+                Save Preset
+              </button>
+              <button class="btn btn-outline-info" @click="openLoadModal" :disabled="presets.length === 0">
+                Load Preset
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Step 1: Constants Setup (Only show if not set) -->
-        <div>
-          <!-- <div class="alert alert-info">
-            <h5><i class="fas fa-info-circle me-2"></i>Langkah 1: Setup Konstanta</h5>
-            <p class="mb-0">Mulai dengan mengatur parameter konstanta yang jarang berubah.</p>
-          </div> -->
-          
-          <ConstantsSetupForm 
+        <div v-if="type !== 'fuel'">
+          <ConstantsSetupForm
+            :type="type"
             v-model="constants"
             @constants-set="handleConstantsSet"
           />
         </div>
 
-        <!-- Step 2: Plan Creation (Show after constants are set) -->
-        <div v-if="isConstantsSet">
-          <div class="alert alert-success">
+        <div v-if="type === 'fuel'">
+          <FuelCalculatorForm />
+        </div>
+
+        <div v-if="isConstantsSet && type !== 'fuel'">
+          <div class="alert alert-success w-50">
             <h5>Saved Race Information</h5>
             <div class="row">
               <div class="col-md-12">
@@ -51,29 +59,26 @@
                 <strong>Long Pit Time:</strong> {{ formatSecondsToTime(constants.longPitTimeSeconds) }} (including driver swap)
               </div>
             </div>
-            <!-- <button class="btn btn-sm btn-outline-primary mt-2" @click="editConstants">
-              <i class="fas fa-edit me-1"></i>Edit Information
-            </button> -->
           </div>
 
-          <!-- Plan Creator Form -->
           <PlanCreatorForm 
+            v-if="type !== 'fuel'"
             :current-plan="currentPlan"
             @update-plan="updateCurrentPlan"
             @save-plan="handleSavePlan"
             @reset-plan="resetCurrentPlan"
           />
 
-          <!-- Saved Plans List -->
           <SavedPlansList 
+            v-if="type !== 'fuel'"
             :saved-plans="savedPlans"
             @delete-plan="deletePlan"
             @calculate-strategies="calculateStrategies"
             @clear-all-plans="clearAllPlans"
           />
 
-          <!-- Strategy Results -->
           <StrategyResults 
+            v-if="type !== 'fuel'"
             :strategy-combinations="strategyCombinations"
             :available-stint-time="availableStintTimeMinutes"
             :is-calculating="isCalculating"
@@ -83,7 +88,6 @@
       </div>
     </div>
 
-    <!-- Preset Modals -->
     <PresetTable 
       v-if="showPresetTable"
       :presets="presets"
@@ -169,6 +173,16 @@ const {
   openPresetTable,
   closePresetTable
 } = usePresets()
+
+const type = ref('fuel')
+
+const setType = (value) => {
+  type.value = value
+  resetCurrentPlan()
+  closePresetTable()
+  closeLoadModal()
+  closeSaveModal()
+}
 
 // Computed
 const formatSecondsToTime = (seconds) => {
