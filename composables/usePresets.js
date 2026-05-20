@@ -255,9 +255,9 @@ export const usePresets = () => {
       id: preset.id,
       name: preset.name,
       createdAt: preset.createdAt,
-      raceTime: `${preset.constants?.raceTimeHours || 0} jam`,
-      pitTime: `${preset.constants?.pitTimeSeconds || 0} detik`,
-      driverSwapTime: `${preset.constants?.longPitTimeSeconds || 0} detik`,
+      raceTime: `${preset.constants?.raceTimeHours || 0} hours`,
+      pitTime: `${preset.constants?.pitTimeSeconds || 0} seconds`,
+      driverSwapTime: `${preset.constants?.longPitTimeSeconds || 0} seconds`,
       totalPlans: Array.isArray(preset.savedPlans) ? preset.savedPlans.length : 0,
       planNames: Array.isArray(preset.savedPlans) ? preset.savedPlans.map(p => p.name).join(', ') : '',
       avgStintDuration: Array.isArray(preset.savedPlans) && preset.savedPlans.length > 0 

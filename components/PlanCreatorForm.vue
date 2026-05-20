@@ -7,8 +7,8 @@
       <form @submit.prevent="handleSavePlan">
           <div class="col-md-12 mb-3">
             <label class="form-label text-white"><strong>Select Input Type</strong></label>
-            <div class="input-group" role="group">
-              <button type="button" class="btn" :class="inputMode==='fuel' ? 'btn-success' : 'btn-outline-success'" @click="inputMode='fuel'">Fuel Carried</button>
+            <div>
+              <button type="button" class="btn me-2" :class="inputMode==='fuel' ? 'btn-success' : 'btn-outline-success'" @click="inputMode='fuel'">Fuel Carried</button>
               <button type="button" class="btn" :class="inputMode==='stint' ? 'btn-success' : 'btn-outline-success'" @click="inputMode='stint'">Stint Duration</button>
             </div>
           </div>
@@ -259,13 +259,9 @@ watch(() => inputMode.value, (mode) => {
   }
 })
 
-watch(() => props.currentPlan.fuelCarried, (val) => {
-  if (inputMode.value === 'fuel') {
-    if (props.currentPlan.fuelPerLap > 0 && props.currentPlan.fuelCarried > 0) {
-      const duration = Math.floor(props.currentPlan.fuelCarried / props.currentPlan.fuelPerLap * (props.currentPlan.paceSeconds / 60))
-      emit('update-plan', { stintDurationMinutes: duration })
-      stintDurationInput.value = duration
-    }
+watch(() => props.currentPlan.stintDurationMinutes, (val) => {
+  if (inputMode.value === 'fuel' && val > 0) {
+    stintDurationInput.value = val
   }
 })
 

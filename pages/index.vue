@@ -2,13 +2,12 @@
   <div class="container-fluid py-4 bg-dark min-vh-100">
     <div class="row">
       <div class="col-12">
-        <!-- Header -->
         <div class="text-center mb-4">
           <h1 class="display-4 fw-bold text-primary">Race Planner</h1>
 
           <div class="d-flex gap-2 flex-column align-items-center w-100">
-            <div class="btn-group" role="group">
-              <button class="btn btn-danger" @click="setType('fuel')">
+            <div class="my-2">
+              <button class="btn btn-danger me-2" @click="setType('fuel')">
                 Fuel Calculator
               </button>
               <button class="btn btn-success" @click="setType('endurance')">
@@ -16,11 +15,8 @@
               </button>
             </div>
             
-            <div v-if="type === 'endurance'" class="btn-group" role="group">
-              <button class="btn btn-outline-primary" @click="openPresetTable">
-                Presets
-              </button>
-              <button class="btn btn-outline-warning" @click="openSaveModal" :disabled="!canSavePreset">
+            <div v-if="type === 'endurance'">
+              <button class="btn btn-outline-warning me-2" @click="openSaveModal" :disabled="!canSavePreset">
                 Save Preset
               </button>
               <button class="btn btn-outline-info" @click="openLoadModal" :disabled="presets.length === 0">
@@ -73,6 +69,7 @@
             v-if="type !== 'fuel'"
             :saved-plans="savedPlans"
             @delete-plan="deletePlan"
+            @update-saved-plan="handleUpdateSavedPlan"
             @calculate-strategies="calculateStrategies"
             @clear-all-plans="clearAllPlans"
           />
@@ -117,6 +114,7 @@
       @close="closeLoadModal"
       @load="handleLoadPreset"
       @delete="handleDeletePreset"
+      @import-preset="handleImportPreset"
     />
   </div>
 </template>
@@ -126,7 +124,6 @@ import { computed } from 'vue'
 import { useRaceStrategy } from '~/composables/useRaceStrategy'
 import { usePresets } from '~/composables/usePresets'
 
-// Components
 import ConstantsSetupForm from '~/components/ConstantsSetupForm.vue'
 import PlanCreatorForm from '~/components/PlanCreatorForm.vue'
 import SavedPlansList from '~/components/SavedPlansList.vue'
@@ -135,7 +132,6 @@ import PresetTable from '~/components/PresetTable.vue'
 import PresetSaveModal from '~/components/PresetSaveModal.vue'
 import PresetLoadModal from '~/components/PresetLoadModal.vue'
 
-// Use composables
 const {
   constants,
   savedPlans,
@@ -147,6 +143,7 @@ const {
   setConstants,
   updateCurrentPlan,
   savePlan,
+  updateSavedPlan,
   deletePlan,
   resetCurrentPlan,
   calculateStrategies,
@@ -184,7 +181,6 @@ const setType = (value) => {
   closeSaveModal()
 }
 
-// Computed
 const formatSecondsToTime = (seconds) => {
   if (!seconds) return '0 seconds'
   const mins = Math.floor(seconds / 60)
@@ -196,7 +192,6 @@ const canSavePreset = computed(() => {
   return isConstantsSet.value && savedPlans.value.length > 0
 })
 
-// Event handlers
 const handleConstantsSet = (newConstants) => {
   setConstants(newConstants)
 }
@@ -208,6 +203,10 @@ const handleSavePlan = async (planName, planColor) => {
   } catch (error) {
     showNotification('error', error.message)
   }
+}
+
+const handleUpdateSavedPlan = (planUpdate) => {
+  updateSavedPlan(planUpdate)
 }
 
 const handleSavePreset = async (presetName) => {
@@ -266,7 +265,6 @@ const handleImportPreset = async (jsonData, newName) => {
   try {
     await importPreset(jsonData, newName)
     if (Array.isArray(jsonData)) {
-      // Import dari Excel, tampilkan semua nama preset
       const names = jsonData.map(p => p.name || 'No Name').join(', ')
       showNotification('success', `Preset: ${names} successfully imported!`)
     } else {
@@ -277,10 +275,6 @@ const handleImportPreset = async (jsonData, newName) => {
   }
 }
 
-const editConstants = () => {
-  isConstantsSet.value = false
-}
-
 const clearAllPlans = () => {
   if (confirm('Are you sure to delete all plans?')) {
     savedPlans.value = []
@@ -289,9 +283,7 @@ const clearAllPlans = () => {
   }
 }
 
-// Utility functions
 const showNotification = (type, message) => {
-  // Simple alert for now - can be replaced with toast notifications
   if (type === 'error') {
     alert('Error: ' + message)
   } else {
@@ -311,7 +303,6 @@ const downloadJson = (jsonData, filename) => {
   URL.revokeObjectURL(url)
 }
 
-// Set page title
 useHead({
   title: 'Race Planner'
 })

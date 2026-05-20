@@ -5,9 +5,10 @@ import { parseInput } from '~/utils/parseString'
 const fuelCarried = ref('')
 const fuelPerLap = ref('')
 const raceTimeValue = ref('')
+const shownRaceTimeValue = ref('')
 const averageLapTime = ref('')
 const shownAverageLapTime = ref('')
-const outputMode = ref('averageLapTime')
+const outputMode = ref('raceTime')
 const estimatedLaps = ref(0)
 
 const raceTimeSeconds = computed(() => raceTimeValue.value * 60)
@@ -31,6 +32,16 @@ const formatSecondsToTime = (seconds) => {
   const secs = seconds % 60
   return `${mins === 0 ? "" : mins} ${mins === 0 ? "" : mins === 1 ? "minute" : "minutes"} ${secs === 0 ? "" : secs} ${secs === 0 ? "" : secs === 1 ? "second" : "seconds"}`
 }
+
+watchEffect(() => {
+    if(outputMode.value !== 'raceTime') return
+    if(fuelCarried.value <= 0 || fuelPerLap.value <= 0 || averageLapTimeSeconds.value <= 0) return
+    
+    const minutes = Math.floor((fuelCarried.value / fuelPerLap.value) * averageLapTimeSeconds.value / 60)
+    raceTimeValue.value = minutes
+    shownRaceTimeValue.value = formatMinutesToTime(minutes)
+    estimatedLaps.value = Math.floor(raceTimeSeconds.value / averageLapTimeSeconds.value)
+})
 
 watchEffect(() => {
     if(outputMode.value !== 'fuelPerLap') return
@@ -69,16 +80,17 @@ watchEffect(() => {
       <form @submit.prevent="handleSubmit">
         <div class="col-md-12 mb-3">
             <label class="form-label text-white"><strong>Select Output Field</strong></label>
-            <div class="input-group" role="group">
-              <button type="button" class="btn" :class="outputMode==='averageLapTime' ? 'btn-danger' : 'btn-outline-danger'" @click="outputMode='averageLapTime'">Average Lap Time</button>
-              <button type="button" class="btn" :class="outputMode==='fuelCarried' ? 'btn-danger' : 'btn-outline-danger'" @click="outputMode='fuelCarried'">Fuel Carried</button>
-              <button type="button" class="btn" :class="outputMode==='fuelPerLap' ? 'btn-danger' : 'btn-outline-danger'" @click="outputMode='fuelPerLap'">Fuel Per Lap</button>
+            <div>
+              <button type="button" class="btn me-2" :class="outputMode==='raceTime' ? 'btn-danger' : 'btn-outline-danger'" @click="outputMode='raceTime'">Race Time</button>
+              <button type="button" class="btn me-2" :class="outputMode==='averageLapTime' ? 'btn-danger' : 'btn-outline-danger'" @click="outputMode='averageLapTime'">Average Lap Time</button>
+              <button type="button" class="btn me-2" :class="outputMode==='fuelCarried' ? 'btn-danger' : 'btn-outline-danger'" @click="outputMode='fuelCarried'">Fuel Carried</button>
+              <button type="button" class="btn" :class="outputMode==='fuelPerLap' ? 'btn-danger' : 'btn-outline-danger'" @click="outputMode='fuelPerLap'">Fuel per Lap</button>
             </div>
           </div>
         <div class="row">
           <div class="col-md-3 mb-3">
             <label for="raceTime" class="form-label text-white">
-              <strong>Total Race Time</strong>
+              <strong>Race Time</strong>
             </label>
             <div class="input-group">
               <input 
@@ -88,12 +100,13 @@ watchEffect(() => {
                 v-model.number="raceTimeValue"
                 min="1"
                 step="1"
-                required
+                :disabled="outputMode==='raceTime'"
               >
               <span class="input-group-text">minutes</span>
             </div>
             <span class="form-text text-white">
-              {{ formatMinutesToTime(raceTimeValue) }}
+              <!-- {{ formatMinutesToTime(raceTimeValue) }} -->
+              {{ shownRaceTimeValue }}
             </span>
           </div>
           <div class="col-md-3 mb-3">
@@ -138,7 +151,7 @@ watchEffect(() => {
           </div>
           <div class="col-md-3 mb-3">
             <label for="fuelPerLap" class="form-label text-white">
-              <strong>Fuel Per Lap</strong>
+              <strong>Fuel per Lap</strong>
             </label>
             <div class="input-group">
               <input 

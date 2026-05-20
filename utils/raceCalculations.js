@@ -193,9 +193,9 @@ export function formatMinutesToTime(minutes) {
   const mins = minutes % 60
   
   if (hours > 0) {
-    return `${hours}h ${mins}m`
+    return `${hours} hours ${mins} minutes`
   } else {
-    return `${mins}m`
+    return `${mins} minutes`
   }
 }
 

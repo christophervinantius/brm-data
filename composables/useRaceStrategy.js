@@ -102,6 +102,13 @@ export const useRaceStrategy = () => {
     return newPlan
   }
 
+  const updateSavedPlan = (planUpdate) => {
+    const index = savedPlans.value.findIndex(plan => plan.id === planUpdate.id)
+    if (index !== -1) {
+      savedPlans.value[index] = { ...savedPlans.value[index], ...planUpdate }
+    }
+  }
+
   const deletePlan = (planId) => {
     const index = savedPlans.value.findIndex(plan => plan.id === planId)
     if (index !== -1) {
@@ -150,7 +157,6 @@ export const useRaceStrategy = () => {
   }
 
   const loadFromPreset = (presetData) => {
-    console.log("Loading preset:", presetData)
     setConstants(presetData.constants)
     
     savedPlans.value = presetData.savedPlans.map(plan => ({ ...plan }))
@@ -181,6 +187,7 @@ export const useRaceStrategy = () => {
     setConstants,
     updateCurrentPlan,
     savePlan,
+    updateSavedPlan,
     deletePlan,
     resetCurrentPlan,
     calculateStrategies,

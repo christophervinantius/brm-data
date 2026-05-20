@@ -9,7 +9,7 @@
           <button type="button" class="btn-close btn-close-white" @click="$emit('close')"></button>
         </div>
         
-        <div class="modal-body">
+        <div class="modal-body bg-dark text-white">
           <form @submit.prevent="handleSave">
             <div class="mb-3">
               <label for="presetName" class="form-label">
@@ -20,45 +20,40 @@
                 class="form-control" 
                 id="presetName"
                 v-model="presetName"
-                placeholder="Example: endurance setup, sprint strategy, etc."
                 required
                 ref="nameInput"
               >
             </div>
 
-            <!-- Preview what will be saved -->
             <div class="mb-3">
               <label class="form-label">
                 <strong>Saved Data</strong>
               </label>
-              <div class="card">
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-12">
-                      <h6 class="text-primary">Race Information</h6>
-                      <ul class="list-unstyled small">
-                        <li><strong>Total Race Time:</strong> {{ constants.raceTimeHours }} hours</li>
-                        <li><strong>Regular Pit Time:</strong> {{ formatSecondsToTime(constants.pitTimeSeconds) }}</li>
-                        <li><strong>Long Pit Time:</strong> {{ formatSecondsToTime(constants.longPitTimeSeconds) }}</li>
-                      </ul>
-                    </div>
-                    <div class="col-md-12">
-                      <h6 class="text-success">Strategy Plans ({{ savedPlans.length }})</h6>
-                      <ul class="list-unstyled small">
-                        <li v-for="plan in savedPlans" :key="plan.id">
-                          <span class="badge me-1" :style="{ backgroundColor: plan.color }">
-                            {{ plan.name }}
-                          </span>
-                          - {{ formatMinutesToTime(plan.stintDurationMinutes) }}
-                        </li>
-                      </ul>
-                    </div>
+              <div class="alert alert-success">
+                <div class="row">
+                  <div class="col-md-12">
+                    <h6>Race Information</h6>
+                    <ul class="list-unstyled small">
+                      <li><strong>Total Race Time:</strong> {{ constants.raceTimeHours }} hours</li>
+                      <li><strong>Regular Pit Time:</strong> {{ formatSecondsToTime(constants.pitTimeSeconds) }}</li>
+                      <li><strong>Long Pit Time:</strong> {{ formatSecondsToTime(constants.longPitTimeSeconds) }}</li>
+                    </ul>
+                  </div>
+                  <div class="col-md-12">
+                    <h6>Strategy Plans ({{ savedPlans.length }})</h6>
+                    <ul class="list-unstyled small">
+                      <li v-for="plan in savedPlans" :key="plan.id">
+                        <span class="badge me-1" :style="{ backgroundColor: plan.color }">
+                          {{ plan.name }}
+                        </span>
+                        - {{ formatMinutesToTime(plan.stintDurationMinutes) }}
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Existing presets warning -->
             <div v-if="existingPresets.length > 0" class="mb-3">
               <h6>Used Preset Names</h6>
               <div class="alert alert-warning">
@@ -69,9 +64,6 @@
             </div>
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-              <button type="button" class="btn btn-secondary" @click="$emit('close')">
-                Cancel
-              </button>
               <button type="submit" class="btn btn-success" :disabled="!presetName.trim()">
                 Save
               </button>
